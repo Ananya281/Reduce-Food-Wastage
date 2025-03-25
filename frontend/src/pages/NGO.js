@@ -1,5 +1,6 @@
 // File: src/pages/NGO.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const NGO = () => {
   const [requests, setRequests] = useState([]);
@@ -9,6 +10,8 @@ const NGO = () => {
     location: '',
     urgency: 'Normal'
   });
+
+  const navigate = useNavigate();
 
   const fetchRequests = async () => {
     const res = await fetch('http://localhost:5000/api/requests');
@@ -44,6 +47,7 @@ const NGO = () => {
 
   return (
     <div className="pt-24 p-6">
+      <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 underline">← Back to Home</button>
       <h1 className="text-3xl font-bold text-green-700 mb-4">Welcome, NGO!</h1>
       <p className="text-gray-700 mb-8">This is your dashboard to request and receive food donations.</p>
 

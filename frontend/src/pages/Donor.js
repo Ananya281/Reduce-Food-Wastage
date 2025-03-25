@@ -1,5 +1,6 @@
 // File: src/pages/Donor.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Donor = () => {
   const [donations, setDonations] = useState([]);
@@ -9,6 +10,8 @@ const Donor = () => {
     location: '',
     expiryDate: ''
   });
+
+  const navigate = useNavigate();
 
   const fetchDonations = async () => {
     const res = await fetch('http://localhost:5000/api/donations');
@@ -45,6 +48,7 @@ const Donor = () => {
 
   return (
     <div className="pt-24 p-6">
+      <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 underline">← Back to Home</button>
       <h1 className="text-3xl font-bold text-green-700 mb-4">Welcome, Donor!</h1>
       <p className="text-gray-700 mb-8">List and manage your food donations below:</p>
 
