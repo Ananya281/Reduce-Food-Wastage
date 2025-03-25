@@ -9,7 +9,7 @@ const Volunteer = () => {
   const volunteerId = localStorage.getItem('donorId') || 'REPLACE_WITH_VALID_VOLUNTEER_ID';
 
   const fetchDonations = async () => {
-    const res = await fetch('http://localhost:5000/api/donations');
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`);
     const data = await res.json();
     if (Array.isArray(data)) {
       setVolunteerTasks(data.filter(d => d.status === 'Available'));

@@ -14,7 +14,7 @@ const NGO = () => {
   const navigate = useNavigate();
 
   const fetchRequests = async () => {
-    const res = await fetch('http://localhost:5000/api/requests');
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`);
     const data = await res.json();
     setRequests(Array.isArray(data) ? data : data.requests || []);
   };
