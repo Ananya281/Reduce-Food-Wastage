@@ -1,91 +1,70 @@
-// File: src/pages/Volunteer.jsx
-import React, { useEffect, useState } from 'react';
+// File: backend/routes/volunteerRoutes.js
+const express = require('express');
+const Volunteer = require('../models/Volunteer');
+const Donation = require('../models/Donation');
 
-const Volunteer = () => {
-  const [volunteerTasks, setVolunteerTasks] = useState([]);
-  const [myPickups, setMyPickups] = useState([]);
-  const volunteerId = localStorage.getItem('donorId') || 'REPLACE_WITH_VALID_VOLUNTEER_ID';
+const router = express.Router();
 
-  const fetchDonations = async () => {
-    const res = await fetch('http://localhost:5000/api/donations');
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      setVolunteerTasks(data.filter(d => d.status === 'Available'));
-      setMyPickups(data.filter(d => d.status === 'In Transit'));
+// Register or update volunteer profile
+router.post('/', async (req, res) => {
+  try {
+    const { user, assignedDonations } = req.body;
+    let volunteer = await Volunteer.findOne({ user });
+
+    if (volunteer) {
+      volunteer.assignedDonations = assignedDonations || volunteer.assignedDonations;
+      await volunteer.save();
     } else {
-      setVolunteerTasks([]);
-      setMyPickups([]);
+      volunteer = await Volunteer.create({ user, assignedDonations });
     }
-  };
 
-  useEffect(() => {
-    fetchDonations();
-  }, []);
+    res.status(201).json(volunteer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  const handleAccept = async (donationId) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/volunteers/accept/${donationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ volunteer: volunteerId })
-      });
-      const data = await res.json();
-      if (data._id) {
-        alert('Pickup accepted!');
-        fetchDonations();
-      } else {
-        alert('Failed to accept pickup');
+// Get all volunteers
+router.get('/', async (req, res) => {
+  try {
+    const volunteers = await Volunteer.find().populate('user').populate('assignedDonations');
+    res.json(volunteers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Accept a donation by volunteer
+router.patch('/accept/:id', async (req, res) => {
+  try {
+    const donationId = req.params.id;
+    const { volunteer } = req.body;
+
+    // Update donation to set status and assigned volunteer
+    const updatedDonation = await Donation.findByIdAndUpdate(
+      donationId,
+      { status: 'In Transit', volunteer },
+      { new: true }
+    );
+
+    if (!updatedDonation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    // Add donation to volunteer profile (optional)
+    let vol = await Volunteer.findOne({ user: volunteer });
+    if (vol) {
+      if (!vol.assignedDonations.includes(donationId)) {
+        vol.assignedDonations.push(donationId);
+        await vol.save();
       }
-    } catch (error) {
-      console.error(error);
-      alert('Error updating pickup');
     }
-  };
 
-  return (
-    <div className="pt-24 p-6">
-      <h1 className="text-3xl font-bold text-green-700 mb-4">Welcome, Volunteer!</h1>
-      <p className="text-gray-700 mb-8">This is your dashboard to manage pickups and deliveries.</p>
+    res.json(updatedDonation);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to accept donation' });
+  }
+});
 
-      <h2 className="text-2xl font-semibold mb-4">Available Donations</h2>
-      {volunteerTasks.length === 0 ? (
-        <p className="text-gray-500">No available donations right now.</p>
-      ) : (
-        <ul className="space-y-4">
-          {volunteerTasks.map((donation) => (
-            <li key={donation._id} className="p-4 border rounded bg-white shadow-sm">
-              <h3 className="font-bold text-green-700">{donation.foodItem}</h3>
-              <p>Quantity: {donation.quantity}</p>
-              <p>Location: {donation.location}</p>
-              <p>Expiry: {new Date(donation.expiryDate).toLocaleDateString()}</p>
-              <button
-                onClick={() => handleAccept(donation._id)}
-                className="mt-3 bg-blue-600 text-white px-4 py-2 rounded"
-              >
-                Accept Pickup
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2 className="text-2xl font-semibold mt-10 mb-4">My Pickups</h2>
-      {myPickups.length === 0 ? (
-        <p className="text-gray-500">You have not accepted any pickups yet.</p>
-      ) : (
-        <ul className="space-y-4">
-          {myPickups.map((pickup) => (
-            <li key={pickup._id} className="p-4 border rounded bg-white shadow-sm">
-              <h3 className="font-bold text-green-700">{pickup.foodItem}</h3>
-              <p>Quantity: {pickup.quantity}</p>
-              <p>Location: {pickup.location}</p>
-              <p>Status: {pickup.status}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
-
-export default Volunteer;
+module.exports = router;
