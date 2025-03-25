@@ -1,10 +1,23 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaTruck, FaHandsHelping, FaRegClock } from 'react-icons/fa';
 
 const FoodPickup = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="pt-24 pb-16 px-6 bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto text-center">
+        {/* 🔙 Back to Home */}
+        <div className="mb-6 text-left">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Back to Home
+          </button>
+        </div>
+
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="bg-green-100 p-4 rounded-full shadow-md">
@@ -46,16 +59,6 @@ const FoodPickup = () => {
               Volunteers are matched based on proximity using real-time location tracking.
             </p>
           </div>
-        </div>
-
-        {/* Optional CTA */}
-        <div className="mt-12">
-          <button
-            onClick={() => window.location.href = '/donor'}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md shadow-md"
-          >
-            Become a Donor Today →
-          </button>
         </div>
       </div>
     </div>

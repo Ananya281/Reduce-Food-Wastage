@@ -1,29 +1,59 @@
-// File: src/components/Footer.jsx
 import React from 'react';
+import { FaEnvelope, FaPhoneAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer id="contact" className="p-10 bg-green-600 text-white">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer id="contact" className="bg-green-700 text-white py-12 px-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+        
+        {/* Contact Info */}
         <div>
-          <h3 className="font-bold text-xl mb-2">Contact Us</h3>
-          <p>Email: support@foodsaver.org</p>
-          <p>Phone: +91 98765 43210</p>
-          <p>Location: New Delhi, India</p>
+          <h3 className="text-xl font-bold mb-4 border-b border-white pb-1 w-max">Contact Us</h3>
+          <p className="flex items-center gap-2 mb-2">
+            <FaEnvelope className="text-sm" /> support@foodsaver.org
+          </p>
+          <p className="flex items-center gap-2 mb-2">
+            <FaPhoneAlt className="text-sm" /> +91 98765 43210
+          </p>
+          <p className="flex items-center gap-2">
+            <FaMapMarkerAlt className="text-sm" /> New Delhi, India
+          </p>
         </div>
+
+        {/* Inspirational Quotes */}
         <div>
-          <h3 className="font-bold text-xl mb-2">Quote</h3>
-          <p>“Don't waste food, feed a soul.”</p>
-          <p>“Small efforts can lead to big change.”</p>
+          <h3 className="text-xl font-bold mb-4 border-b border-white pb-1 w-max">Quote</h3>
+          <p className="italic mb-2">“Don't waste food, feed a soul.”</p>
+          <p className="italic">“Small efforts can lead to big change.”</p>
         </div>
-        <div className="text-center md:text-right">
-          <h3 className="font-bold text-xl mb-2">Quick Links</h3>
-          <p><a href="#about" className="hover:underline">About</a></p>
-          <p><a href="#services" className="hover:underline">Services</a></p>
-          <p><a href="#contact" className="hover:underline">Contact</a></p>
+
+        {/* Quick Links */}
+        <div className="md:text-right text-left">
+          <h3 className="text-xl font-bold mb-4 border-b border-white pb-1 w-max md:ml-auto">Quick Links</h3>
+          <ul className="space-y-2">
+            <li>
+              <a href="#about" className="hover:underline hover:text-green-200 transition">About</a>
+            </li>
+            <li>
+              <a href="#services" className="hover:underline hover:text-green-200 transition">Services</a>
+            </li>
+            <li>
+              <a href="#contact" className="hover:underline hover:text-green-200 transition">Contact</a>
+            </li>
+            <li>
+              <Link to="/login" className="hover:underline hover:text-green-200 transition">Login</Link>
+            </li>
+            <li>
+              <Link to="/register" className="hover:underline hover:text-green-200 transition">Register</Link>
+            </li>
+          </ul>
         </div>
       </div>
-      <div className="text-center mt-6 text-sm">&copy; 2025 FoodSaver. All rights reserved.</div>
+
+      <div className="text-center text-sm mt-10 border-t border-green-500 pt-4">
+        &copy; 2025 <span className="font-semibold">FoodSaver</span>. All rights reserved.
+      </div>
     </footer>
   );
 };

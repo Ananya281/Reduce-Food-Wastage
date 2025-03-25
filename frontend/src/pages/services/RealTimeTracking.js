@@ -1,10 +1,23 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaMapMarkedAlt, FaSatelliteDish, FaEye } from 'react-icons/fa';
 
 const RealTimeTracking = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="pt-24 pb-16 px-6 bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto text-center">
+        {/* 🔙 Back to Home */}
+        <div className="mb-6 text-left">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Back to Home
+          </button>
+        </div>
+
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="bg-green-100 p-4 rounded-full shadow-md">
@@ -46,16 +59,6 @@ const RealTimeTracking = () => {
               Volunteers are guided via the shortest path to reduce time and increase efficiency.
             </p>
           </div>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-12">
-          <button
-            onClick={() => window.location.href = '/volunteer'}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md shadow-md"
-          >
-            Join as a Volunteer →
-          </button>
         </div>
       </div>
     </div>

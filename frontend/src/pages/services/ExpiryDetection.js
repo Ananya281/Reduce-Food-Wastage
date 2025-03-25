@@ -1,10 +1,23 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaRobot, FaBrain, FaRecycle } from 'react-icons/fa';
 
 const ExpiryDetection = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="pt-24 pb-16 px-6 bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto text-center">
+        {/* 🔙 Back to Home */}
+        <div className="mb-6 text-left">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Back to Home
+          </button>
+        </div>
+
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="bg-green-100 p-4 rounded-full shadow-md">
@@ -46,16 +59,6 @@ const ExpiryDetection = () => {
               Notifies volunteers and NGOs when food items are at risk of expiration.
             </p>
           </div>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-12">
-          <button
-            onClick={() => window.location.href = '/ngo'}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md shadow-md"
-          >
-            Help Us Save More Food →
-          </button>
         </div>
       </div>
     </div>

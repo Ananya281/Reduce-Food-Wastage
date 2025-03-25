@@ -1,6 +1,6 @@
-// File: src/pages/Donor.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck } from 'react-icons/fa';
 
 const Donor = () => {
   const [donations, setDonations] = useState([]);
@@ -16,7 +16,6 @@ const Donor = () => {
   const fetchDonations = async () => {
     const res = await fetch('http://localhost:5000/api/donations');
     const data = await res.json();
-    console.log('Donation Response:', data);
     setDonations(Array.isArray(data) ? data : data.donations || []);
   };
 
@@ -47,67 +46,82 @@ const Donor = () => {
   };
 
   return (
-    <div className="pt-24 p-6">
-      <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 underline">← Back to Home</button>
-      <h1 className="text-3xl font-bold text-green-700 mb-4">Welcome, Donor!</h1>
-      <p className="text-gray-700 mb-8">List and manage your food donations below:</p>
+    <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">
+          ← Back to Home
+        </button>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md max-w-lg mb-10">
-        <h2 className="text-xl font-semibold mb-4">Create Donation</h2>
-        <input
-          type="text"
-          name="foodItem"
-          value={formData.foodItem}
-          onChange={handleChange}
-          placeholder="Food Item"
-          className="w-full p-2 mb-4 border"
-          required
-        />
-        <input
-          type="text"
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleChange}
-          placeholder="Quantity (e.g. 10kg, 5 packets)"
-          className="w-full p-2 mb-4 border"
-          required
-        />
-        <input
-          type="text"
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          placeholder="Location"
-          className="w-full p-2 mb-4 border"
-          required
-        />
-        <input
-          type="date"
-          name="expiryDate"
-          value={formData.expiryDate}
-          onChange={handleChange}
-          className="w-full p-2 mb-4 border"
-          required
-        />
-        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded">Submit Donation</button>
-      </form>
+        <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, Donor!</h1>
+        <p className="text-gray-700 mb-10">Thank you for contributing to a better world. Use the form below to donate food and track your contributions.</p>
 
-      <h2 className="text-2xl font-semibold mb-4">Your Donations</h2>
-      {!Array.isArray(donations) || donations.length === 0 ? (
-        <p className="text-gray-500">No donations yet.</p>
-      ) : (
-        <ul className="space-y-4">
-          {donations.map((donation) => (
-            <li key={donation._id} className="p-4 border rounded bg-white shadow-sm">
-              <h3 className="font-bold text-green-700">{donation.foodItem}</h3>
-              <p>Quantity: {donation.quantity}</p>
-              <p>Location: {donation.location}</p>
-              <p>Expiry: {new Date(donation.expiryDate).toLocaleDateString()}</p>
-              <p>Status: {donation.status}</p>
-            </li>
-          ))}
-        </ul>
-      )}
+        {/* Donation Form */}
+        <div className="bg-white p-6 rounded-xl shadow-md mb-12">
+          <h2 className="text-2xl font-semibold text-green-700 mb-4">Create a Donation</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              name="foodItem"
+              value={formData.foodItem}
+              onChange={handleChange}
+              placeholder="Food Item"
+              className="p-3 border rounded"
+              required
+            />
+            <input
+              type="text"
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleChange}
+              placeholder="Quantity (e.g. 10kg, 5 packets)"
+              className="p-3 border rounded"
+              required
+            />
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="Location"
+              className="p-3 border rounded"
+              required
+            />
+            <input
+              type="date"
+              name="expiryDate"
+              value={formData.expiryDate}
+              onChange={handleChange}
+              className="p-3 border rounded"
+              required
+            />
+            <div className="md:col-span-2">
+              <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded mt-2 transition">
+                Submit Donation
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Donations List */}
+        <h2 className="text-2xl font-bold text-green-700 mb-4">Your Donations</h2>
+        {!Array.isArray(donations) || donations.length === 0 ? (
+          <p className="text-gray-500">You haven’t made any donations yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {donations.map((donation) => (
+              <div key={donation._id} className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
+                <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
+                  <FaUtensils /> {donation.foodItem}
+                </h3>
+                <p className="text-gray-700 flex items-center gap-2"><FaClipboardCheck /> Quantity: {donation.quantity}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {donation.location}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleDateString()}</p>
+                <p className="text-gray-600 mt-2"><strong>Status:</strong> {donation.status}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
