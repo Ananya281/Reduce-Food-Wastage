@@ -1,11 +1,41 @@
 const mongoose = require('mongoose');
 
 const requestSchema = new mongoose.Schema({
-  receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  donation: { type: mongoose.Schema.Types.ObjectId, ref: 'Donation' },
-  urgencyLevel: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
-  message: String,
-  requestedAt: { type: Date, default: Date.now }
+  foodType: {
+    type: String,
+    required: true,
+  },
+  quantity: {
+    type: String,
+    required: true,
+  },
+  location: {
+    type: String,
+    required: true,
+  },
+  urgency: {
+    type: String,
+    enum: ['Normal', 'Urgent'],
+    default: 'Normal',
+  },
+  receiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  donation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Donation',
+    default: null,
+  },
+  status: {
+    type: String,
+    default: 'Pending',
+  },
+  requestedAt: {
+    type: Date,
+    default: Date.now,
+  }
 });
 
 module.exports = mongoose.model('Request', requestSchema);

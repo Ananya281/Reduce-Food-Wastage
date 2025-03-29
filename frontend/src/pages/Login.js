@@ -20,8 +20,9 @@ const Login = () => {
       const data = await res.json();
 
       if (data.user) {
-        localStorage.setItem('donorId', data.user._id);
+        localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
+
 
         if (data.user.role === 'Donor') navigate('/donor');
         else if (data.user.role === 'NGOs') navigate('/ngo');

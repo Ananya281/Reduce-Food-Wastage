@@ -12,11 +12,16 @@ const Donor = () => {
   });
 
   const navigate = useNavigate();
+  const donorId = localStorage.getItem('donorId'); // ✅ Get logged-in donor's ID
 
   const fetchDonations = async () => {
-    const res = await fetch('http://localhost:5000/api/donations');
-    const data = await res.json();
-    setDonations(Array.isArray(data) ? data : data.donations || []);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations/donor/${donorId}`);
+      const data = await res.json();
+      setDonations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching donor donations:', err);
+    }
   };
 
   useEffect(() => {
@@ -29,19 +34,23 @@ const Donor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const donorId = localStorage.getItem('donorId') || 'YOUR_DONOR_OBJECT_ID';
-    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, donor: donorId })
-    });
-    const data = await res.json();
-    if (data._id) {
-      alert('Donation created!');
-      setFormData({ foodItem: '', quantity: '', location: '', expiryDate: '' });
-      fetchDonations();
-    } else {
-      alert('Failed to create donation');
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, donor: donorId }) // ✅ Send donor ID
+      });
+      const data = await res.json();
+      if (data._id) {
+        alert('Donation created!');
+        setFormData({ foodItem: '', quantity: '', location: '', expiryDate: '' });
+        fetchDonations(); // ✅ Refresh list
+      } else {
+        alert('Failed to create donation');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error during donation creation');
     }
   };
 
@@ -53,7 +62,9 @@ const Donor = () => {
         </button>
 
         <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, Donor!</h1>
-        <p className="text-gray-700 mb-10">Thank you for contributing to a better world. Use the form below to donate food and track your contributions.</p>
+        <p className="text-gray-700 mb-10">
+          Thank you for contributing to a better world. Use the form below to donate food and track your contributions.
+        </p>
 
         {/* Donation Form */}
         <div className="bg-white p-6 rounded-xl shadow-md mb-12">
@@ -95,7 +106,10 @@ const Donor = () => {
               required
             />
             <div className="md:col-span-2">
-              <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded mt-2 transition">
+              <button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded mt-2 transition"
+              >
                 Submit Donation
               </button>
             </div>

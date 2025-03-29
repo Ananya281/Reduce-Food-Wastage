@@ -4,28 +4,30 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('donorId'));
+
+  // ✅ Use 'userId' instead of 'donorId' for all roles (Donor, NGO, Volunteer)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('userId'));
 
   useEffect(() => {
-    // Listen to localStorage changes
     const handleStorageChange = () => {
-      setIsLoggedIn(!!localStorage.getItem('donorId'));
+      setIsLoggedIn(!!localStorage.getItem('userId'));
     };
-
+  
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-
-  // Re-check on route change
+  
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('donorId'));
+    setIsLoggedIn(!!localStorage.getItem('userId'));
   }, [location.pathname]);
-
+  
   const handleSignOut = () => {
-    localStorage.removeItem('donorId');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userRole'); // optional
     setIsLoggedIn(false);
     navigate('/');
   };
+  
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-white shadow-md">

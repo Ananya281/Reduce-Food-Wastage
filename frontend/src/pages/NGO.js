@@ -12,16 +12,24 @@ const NGO = () => {
   });
 
   const navigate = useNavigate();
+  const receiverId = localStorage.getItem('userId'); // ✅ Make sure this matches login
+
+  console.log("📦 NGO Dashboard | Receiver ID:", receiverId);
 
   const fetchRequests = async () => {
-    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`);
-    const data = await res.json();
-    setRequests(Array.isArray(data) ? data : data.requests || []);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests?receiver=${receiverId}`);
+      const data = await res.json();
+      console.log("🌐 Received data from backend:", data);
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    }
   };
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if (receiverId) fetchRequests();
+  }, [receiverId]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,19 +37,24 @@ const NGO = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const receiverId = localStorage.getItem('donorId') || 'REPLACE_WITH_VALID_USER_ID';
-    const res = await fetch('http://localhost:5000/api/requests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, receiver: receiverId })
-    });
-    const data = await res.json();
-    if (data._id) {
-      alert('Request submitted!');
-      setFormData({ foodType: '', quantity: '', location: '', urgency: 'Normal' });
-      fetchRequests();
-    } else {
-      alert('Failed to submit request');
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, receiver: receiverId })
+      });
+
+      const data = await res.json();
+      if (data._id) {
+        alert('Request submitted!');
+        setFormData({ foodType: '', quantity: '', location: '', urgency: 'Normal' });
+        fetchRequests();
+      } else {
+        alert('Failed to submit request');
+      }
+    } catch (error) {
+      console.error('Submission failed:', error);
+      alert('Submission failed');
     }
   };
 
@@ -110,25 +123,27 @@ const NGO = () => {
 
         {/* Requests List */}
         <h2 className="text-2xl font-bold text-green-700 mb-4">Your Requests</h2>
-        {!Array.isArray(requests) || requests.length === 0 ? (
+        {requests.length === 0 ? (
           <p className="text-gray-500">You haven’t made any requests yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {requests.map((req) => (
               <div key={req._id} className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
                 <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
-                  <FaBoxOpen /> {req.foodType}
+                  <FaBoxOpen /> {req.foodType || 'N/A'}
                 </h3>
                 <p className="text-gray-700 flex items-center gap-2">
-                  <FaFlag /> Urgency: {req.urgency}
+                  <FaFlag /> Urgency: {req.urgency || 'N/A'}
                 </p>
                 <p className="text-gray-700 flex items-center gap-2">
-                  <FaClock /> Quantity: {req.quantity}
+                  <FaClock /> Quantity: {req.quantity || 'N/A'}
                 </p>
                 <p className="text-gray-700 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Location: {req.location}
+                  <FaMapMarkerAlt /> Location: {req.location || 'N/A'}
                 </p>
-                <p className="text-gray-600 mt-2"><strong>Status:</strong> {req.status}</p>
+                <p className="text-gray-600 mt-2">
+                  <strong>Status:</strong> {req.status || 'Pending'}
+                </p>
               </div>
             ))}
           </div>

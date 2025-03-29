@@ -3,7 +3,7 @@ const Donation = require('../models/Donation');
 
 const router = express.Router();
 
-// Create a new donation
+// ✅ Create a new donation
 router.post('/', async (req, res) => {
   try {
     const { donor, foodItem, quantity, location, expiryDate } = req.body;
@@ -28,13 +28,25 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all donations
+// ✅ Get all donations
 router.get('/', async (req, res) => {
   try {
     const donations = await Donation.find().populate('donor');
     res.json(donations);
   } catch (err) {
     console.error('Error fetching donations:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅✅✅ NEW: Get donations by donor ID
+router.get('/donor/:donorId', async (req, res) => {
+  try {
+    const { donorId } = req.params;
+    const donations = await Donation.find({ donor: donorId }).populate('donor');
+    res.json(donations);
+  } catch (err) {
+    console.error('Error fetching donor-specific donations:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
