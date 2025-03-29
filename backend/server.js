@@ -7,10 +7,19 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://your-frontend.onrender.com'], // replace with your real frontend domain
-  credentials: true,
-}));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://reduce-food-wastage.vercel.app'
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true
+  })
+);
+
+
 app.use(express.json());
 
 // ✅ Root route to confirm server is running
