@@ -7,7 +7,10 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://your-frontend.onrender.com'], // replace with your real frontend domain
+  credentials: true,
+}));
 app.use(express.json());
 
 // ✅ Root route to confirm server is running
