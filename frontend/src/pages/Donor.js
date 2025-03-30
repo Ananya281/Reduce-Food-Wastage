@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck } from 'react-icons/fa';
 
 const Donor = () => {
@@ -12,7 +12,19 @@ const Donor = () => {
   });
 
   const navigate = useNavigate();
-  const donorId = localStorage.getItem('donorId'); // ✅ Get logged-in donor's ID
+  const location = useLocation(); // ✅ React Router hook
+  const donorId = localStorage.getItem('userId'); // consistent key
+
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.welcome) {
+      setShowWelcome(true);
+      setTimeout(() => setShowWelcome(false), 3000); // hide after 3s
+    }
+
+    fetchDonations();
+  }, []);
 
   const fetchDonations = async () => {
     try {
@@ -24,10 +36,6 @@ const Donor = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDonations();
-  }, []);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -38,13 +46,13 @@ const Donor = () => {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, donor: donorId }) // ✅ Send donor ID
+        body: JSON.stringify({ ...formData, donor: donorId })
       });
       const data = await res.json();
       if (data._id) {
         alert('Donation created!');
         setFormData({ foodItem: '', quantity: '', location: '', expiryDate: '' });
-        fetchDonations(); // ✅ Refresh list
+        fetchDonations();
       } else {
         alert('Failed to create donation');
       }
@@ -57,6 +65,12 @@ const Donor = () => {
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto">
+        {showWelcome && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-3 rounded mb-6 text-center text-lg font-medium shadow">
+            🎉 Welcome to your Dashboard!
+          </div>
+        )}
+
         <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">
           ← Back to Home
         </button>
@@ -118,7 +132,7 @@ const Donor = () => {
 
         {/* Donations List */}
         <h2 className="text-2xl font-bold text-green-700 mb-4">Your Donations</h2>
-        {!Array.isArray(donations) || donations.length === 0 ? (
+        {!donations.length ? (
           <p className="text-gray-500">You haven’t made any donations yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

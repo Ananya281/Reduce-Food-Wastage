@@ -1,22 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHandHoldingHeart, FaMapMarkerAlt, FaCalendarAlt, FaTruck } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Volunteer = () => {
   const [volunteerTasks, setVolunteerTasks] = useState([]);
   const [myPickups, setMyPickups] = useState([]);
   const navigate = useNavigate();
-  const volunteerId = localStorage.getItem('donorId') || 'REPLACE_WITH_VALID_VOLUNTEER_ID';
+
+  const volunteerId = localStorage.getItem('userId'); // ✅ consistent key across all roles
 
   const fetchDonations = async () => {
-    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`);
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      setVolunteerTasks(data.filter(d => d.status === 'Available'));
-      setMyPickups(data.filter(d => d.status === 'In Transit'));
-    } else {
-      setVolunteerTasks([]);
-      setMyPickups([]);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations`);
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setVolunteerTasks(data.filter(d => d.status === 'Available'));
+        setMyPickups(data.filter(d => d.status === 'In Transit' && d.volunteer === volunteerId));
+      } else {
+        setVolunteerTasks([]);
+        setMyPickups([]);
+      }
+    } catch (error) {
+      toast.error("❌ Failed to fetch donations");
     }
   };
 
@@ -26,21 +34,23 @@ const Volunteer = () => {
 
   const handleAccept = async (donationId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/volunteers/accept/${donationId}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/volunteers/accept/${donationId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volunteer: volunteerId })
       });
+
       const data = await res.json();
+
       if (data._id) {
-        alert('Pickup accepted!');
+        toast.success("✅ Pickup accepted!");
         fetchDonations();
       } else {
-        alert('Failed to accept pickup');
+        toast.error("❌ Failed to accept pickup");
       }
     } catch (error) {
+      toast.error("❌ Error updating pickup");
       console.error(error);
-      alert('Error updating pickup');
     }
   };
 
@@ -67,15 +77,9 @@ const Volunteer = () => {
                 <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
                   <FaHandHoldingHeart /> {donation.foodItem}
                 </h3>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaTruck /> Quantity: {donation.quantity}
-                </p>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Location: {donation.location}
-                </p>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleDateString()}
-                </p>
+                <p className="text-gray-700 flex items-center gap-2"><FaTruck /> Quantity: {donation.quantity}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {donation.location}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleDateString()}</p>
                 <button
                   onClick={() => handleAccept(donation._id)}
                   className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition"
@@ -98,15 +102,9 @@ const Volunteer = () => {
                 <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
                   <FaHandHoldingHeart /> {pickup.foodItem}
                 </h3>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaTruck /> Quantity: {pickup.quantity}
-                </p>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Location: {pickup.location}
-                </p>
-                <p className="text-gray-600 mt-2">
-                  <strong>Status:</strong> {pickup.status}
-                </p>
+                <p className="text-gray-700 flex items-center gap-2"><FaTruck /> Quantity: {pickup.quantity}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {pickup.location}</p>
+                <p className="text-gray-600 mt-2"><strong>Status:</strong> {pickup.status}</p>
               </div>
             ))}
           </div>

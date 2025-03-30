@@ -5,12 +5,20 @@ const Hero = () => {
   const navigate = useNavigate();
 
   const handleGetInvolved = () => {
-    const role = localStorage.getItem('userRole'); // You should set this on login/register
+    const role = localStorage.getItem('userRole');
+    const userId = localStorage.getItem('userId'); // ✅ Only check this
 
-    if (role === 'Donor') navigate('/donor');
-    else if (role === 'Volunteer') navigate('/volunteer');
-    else if (role === 'NGOs') navigate('/ngo');
-    else navigate('/register'); // fallback if not logged in
+    if (!role || !userId) {
+      navigate('/login'); // 🚫 Not logged in
+    } else if (role === 'Donor') {
+      navigate('/donor');
+    } else if (role === 'Volunteer') {
+      navigate('/volunteer');
+    } else if (role === 'NGOs') {
+      navigate('/ngo');
+    } else {
+      navigate('/login'); // Fallback
+    }
   };
 
   return (

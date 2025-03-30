@@ -1,13 +1,17 @@
-// Same imports as before
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import loginImage from '../assets/savefood.jpeg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+
+  const showSuccess = () => toast.success('🎉 Welcome to your Dashboard!');
+  const showError = (msg) => toast.error(`❌ ${msg}`);
 
   const handleLogin = async () => {
     try {
@@ -23,16 +27,16 @@ const Login = () => {
         localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
 
-
+        showSuccess();
         if (data.user.role === 'Donor') navigate('/donor');
         else if (data.user.role === 'NGOs') navigate('/ngo');
         else if (data.user.role === 'Volunteer') navigate('/volunteer');
       } else {
-        alert('Invalid credentials');
+        showError('Invalid credentials');
       }
     } catch (error) {
       console.error(error);
-      alert('Login failed');
+      showError('Login failed');
     }
   };
 
@@ -47,24 +51,24 @@ const Login = () => {
       const data = await res.json();
 
       if (data.user) {
-        localStorage.setItem('donorId', data.user._id);
+        localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
 
+        showSuccess();
         if (data.user.role === 'Donor') navigate('/donor');
         else if (data.user.role === 'NGOs') navigate('/ngo');
         else if (data.user.role === 'Volunteer') navigate('/volunteer');
       } else {
-        alert('Google login failed');
+        showError('Google login failed');
       }
     } catch (err) {
       console.error(err);
-      alert('Error during Google login');
+      showError('Error during Google login');
     }
   };
 
   const handleGoogleError = () => {
-    console.error('Google Sign In Failed');
-    alert('Google Sign In failed');
+    showError('Google Sign In failed');
   };
 
   return (
@@ -82,10 +86,25 @@ const Login = () => {
         <div className="w-full md:w-1/2 p-8">
           <h2 className="text-3xl font-bold text-green-700 mb-6 text-center">Welcome Back</h2>
 
-          <input type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={(e) => setEmail(e.target.value)} required />
-          <input type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={(e) => setPassword(e.target.value)} required />
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full p-3 mb-4 border rounded"
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-3 mb-4 border rounded"
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-          <button onClick={handleLogin} className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition">
+          <button
+            onClick={handleLogin}
+            className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition"
+          >
             Sign In
           </button>
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import loginImage from '../assets/savefood.jpeg';
 
 const Register = () => {
@@ -15,6 +17,9 @@ const Register = () => {
   const [googleCredential, setGoogleCredential] = useState(null);
   const [showRoleSelect, setShowRoleSelect] = useState(false);
   const [googleSelectedRole, setGoogleSelectedRole] = useState('Donor');
+
+  const showSuccess = () => toast.success('🎉 Welcome to your Dashboard!');
+  const showError = (msg) => toast.error(`❌ ${msg}`);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,18 +36,19 @@ const Register = () => {
       const data = await res.json();
 
       if (data._id) {
-        localStorage.setItem('donorId', data._id);
+        localStorage.setItem('userId', data._id);
         localStorage.setItem('userRole', formData.role);
 
+        showSuccess();
         if (formData.role === 'Donor') navigate('/donor');
         else if (formData.role === 'NGOs') navigate('/ngo');
         else if (formData.role === 'Volunteer') navigate('/volunteer');
       } else {
-        alert('Registration failed');
+        showError('Registration failed');
       }
     } catch (error) {
       console.error(error);
-      alert('Error during registration');
+      showError('Error during registration');
     }
   };
 
@@ -52,8 +58,7 @@ const Register = () => {
   };
 
   const handleGoogleError = () => {
-    console.error('Google Sign Up Failed');
-    alert('Google Sign Up failed');
+    showError('Google Sign Up failed');
   };
 
   const handleGoogleRoleSubmit = async () => {
@@ -70,18 +75,19 @@ const Register = () => {
       const data = await res.json();
 
       if (data.user) {
-        localStorage.setItem('donorId', data.user._id);
+        localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', googleSelectedRole);
 
+        showSuccess();
         if (googleSelectedRole === 'Donor') navigate('/donor');
         else if (googleSelectedRole === 'NGOs') navigate('/ngo');
         else if (googleSelectedRole === 'Volunteer') navigate('/volunteer');
       } else {
-        alert('Google Sign-Up failed');
+        showError('Google Sign-Up failed');
       }
     } catch (err) {
       console.error(err);
-      alert('Error during Google Sign-Up');
+      showError('Error during Google Sign-Up');
     }
   };
 

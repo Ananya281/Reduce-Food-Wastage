@@ -5,29 +5,39 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Use 'userId' instead of 'donorId' for all roles (Donor, NGO, Volunteer)
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('userId'));
 
+  // ✅ Update login status on route/path change
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('userId'));
+  }, [location.pathname]);
+
+  // ✅ Listen for storage events (for multi-tab sync)
   useEffect(() => {
     const handleStorageChange = () => {
       setIsLoggedIn(!!localStorage.getItem('userId'));
     };
-  
+
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-  
+
+  // ✅ Also update login status on mount (fresh load)
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('userId'));
-  }, [location.pathname]);
-  
+    const interval = setInterval(() => {
+      const loggedIn = !!localStorage.getItem('userId');
+      setIsLoggedIn(loggedIn);
+    }, 500); // short interval for quick sync
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSignOut = () => {
     localStorage.removeItem('userId');
-    localStorage.removeItem('userRole'); // optional
+    localStorage.removeItem('userRole');
     setIsLoggedIn(false);
     navigate('/');
   };
-  
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-white shadow-md">

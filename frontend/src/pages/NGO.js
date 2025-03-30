@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBoxOpen, FaMapMarkerAlt, FaClock, FaFlag } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const NGO = () => {
   const [requests, setRequests] = useState([]);
@@ -12,17 +14,15 @@ const NGO = () => {
   });
 
   const navigate = useNavigate();
-  const receiverId = localStorage.getItem('userId'); // ✅ Make sure this matches login
-
-  console.log("📦 NGO Dashboard | Receiver ID:", receiverId);
+  const receiverId = localStorage.getItem('userId'); // ✅ Should match login storage key
 
   const fetchRequests = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests?receiver=${receiverId}`);
       const data = await res.json();
-      console.log("🌐 Received data from backend:", data);
       setRequests(Array.isArray(data) ? data : []);
     } catch (error) {
+      toast.error('❌ Failed to fetch requests');
       console.error('Error fetching requests:', error);
     }
   };
@@ -46,15 +46,15 @@ const NGO = () => {
 
       const data = await res.json();
       if (data._id) {
-        alert('Request submitted!');
+        toast.success('✅ Request submitted successfully!');
         setFormData({ foodType: '', quantity: '', location: '', urgency: 'Normal' });
         fetchRequests();
       } else {
-        alert('Failed to submit request');
+        toast.error('❌ Failed to submit request');
       }
     } catch (error) {
       console.error('Submission failed:', error);
-      alert('Submission failed');
+      toast.error('❌ Error during submission');
     }
   };
 
