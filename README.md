@@ -1,16 +1,16 @@
 # 🍽️ FoodSaver - Empower Communities, Feed the Needy
 
 ## 🌐 Live Demo
-Visit: [reduce-food-wastage.vercel.app](https://reduce-food-wastage.vercel.app)
+Visit: [foodsaver.vercel.app](https://foodsaver.vercel.app)
 
 ---
 
 ## 📌 About the Project
 
-**Reduce Food Wastage** is a full-stack web application that connects **donors**, **NGOs**, and **volunteers** to manage and optimize the donation and distribution of surplus food. 
+**FoodSaver** is a full-stack web application that connects **donors**, **NGOs**, and **volunteers** to manage and optimize the donation and distribution of surplus food.
 
 This platform enables:
-- 📦 Donors to post surplus food donations
+- 🛆 Donors to post surplus food donations
 - 🏥 NGOs to request food for the needy
 - 🚗 Volunteers to handle pickups and deliveries
 
@@ -54,8 +54,8 @@ By streamlining the process, this initiative aims to **minimize food wastage** a
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/reduce-food-wastage.git
-cd reduce-food-wastage
+git clone https://github.com/your-username/foodsaver.git
+cd foodsaver
 ```
 
 ### 2. Backend Setup
@@ -81,7 +81,7 @@ npm install
 ```
 Create a `.env` file:
 ```env
-REACT_APP_BACKEND_URL=https://reduce-food-wastage.onrender.com
+REACT_APP_BACKEND_URL=https://foodsaver.onrender.com
 ```
 Start the frontend app:
 ```bash
@@ -95,7 +95,7 @@ npm start
 <!--> Add screenshots to the `screenshots/` folder and uncomment below:-->
 
 <!--
-### 🔐 Login Page
+### 🔒 Login Page
 ![Login](./screenshots/login.png)
 
 ### 👤 Donor Dashboard
@@ -122,7 +122,7 @@ We welcome contributions! Follow the steps below:
 
 ---
 
-## 📄 License
+## 📝 License
 
 This project is licensed under the **MIT License**. Feel free to use and adapt!
 
