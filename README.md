@@ -1,4 +1,4 @@
-# 🍽️ Reduce Food Wastage - Empower Communities, Feed the Needy
+# 🍽️ FoodSaver - Empower Communities, Feed the Needy
 
 ## 🌐 Live Demo
 Visit: [reduce-food-wastage.vercel.app](https://reduce-food-wastage.vercel.app)
