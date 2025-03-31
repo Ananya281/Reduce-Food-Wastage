@@ -1,3 +1,5 @@
+// File: frontend/src/pages/Login.js
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
@@ -23,16 +25,14 @@ const Login = () => {
 
       const data = await res.json();
 
-      if (data.user) {
+      if (res.ok && data.user) {
         localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
 
         showSuccess();
-        if (data.user.role === 'Donor') navigate('/donor');
-        else if (data.user.role === 'NGOs') navigate('/ngo');
-        else if (data.user.role === 'Volunteer') navigate('/volunteer');
+        navigateToDashboard(data.user.role);
       } else {
-        showError('Invalid credentials');
+        showError(data.error || 'Invalid credentials');
       }
     } catch (error) {
       console.error(error);
@@ -50,21 +50,25 @@ const Login = () => {
 
       const data = await res.json();
 
-      if (data.user) {
+      if (res.ok && data.user) {
         localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
 
         showSuccess();
-        if (data.user.role === 'Donor') navigate('/donor');
-        else if (data.user.role === 'NGOs') navigate('/ngo');
-        else if (data.user.role === 'Volunteer') navigate('/volunteer');
+        navigateToDashboard(data.user.role);
       } else {
-        showError('Google login failed');
+        showError(data.error || 'Google login failed');
       }
     } catch (err) {
       console.error(err);
       showError('Error during Google login');
     }
+  };
+
+  const navigateToDashboard = (role) => {
+    if (role === 'Donor') navigate('/donor');
+    else if (role === 'NGOs') navigate('/ngo');
+    else if (role === 'Volunteer') navigate('/volunteer');
   };
 
   const handleGoogleError = () => {
@@ -111,7 +115,11 @@ const Login = () => {
           <div className="my-4 text-center text-gray-500">or</div>
 
           <div className="flex justify-center mb-4">
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap
+            />
           </div>
 
           <p className="mt-4 text-sm text-center">
