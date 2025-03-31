@@ -10,11 +10,14 @@ const NGO = () => {
     foodType: '',
     quantity: '',
     location: '',
-    urgency: 'Normal'
+    urgency: 'Normal',
+    preferredDate: '',
+    contactNumber: '',
+    specialNotes: ''
   });
 
   const navigate = useNavigate();
-  const receiverId = localStorage.getItem('userId'); // ✅ Should match login storage key
+  const receiverId = localStorage.getItem('userId');
 
   const fetchRequests = async () => {
     try {
@@ -29,7 +32,26 @@ const NGO = () => {
 
   useEffect(() => {
     if (receiverId) fetchRequests();
+    getCurrentLocation(); // 📍 Auto-location
   }, [receiverId]);
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          const address = data.display_name || `${latitude}, ${longitude}`;
+          setFormData(prev => ({ ...prev, location: address }));
+        } catch (err) {
+          console.error("Geolocation reverse lookup failed:", err);
+        }
+      }, (error) => {
+        console.warn("Geolocation error:", error.message);
+      });
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -47,7 +69,15 @@ const NGO = () => {
       const data = await res.json();
       if (data._id) {
         toast.success('✅ Request submitted successfully!');
-        setFormData({ foodType: '', quantity: '', location: '', urgency: 'Normal' });
+        setFormData({
+          foodType: '',
+          quantity: '',
+          location: '',
+          urgency: 'Normal',
+          preferredDate: '',
+          contactNumber: '',
+          specialNotes: ''
+        });
         fetchRequests();
       } else {
         toast.error('❌ Failed to submit request');
@@ -67,7 +97,7 @@ const NGO = () => {
 
         <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, NGO!</h1>
         <p className="text-gray-700 mb-10">
-          Request food donations for your organization and help reduce hunger. Submit a request below and track its status.
+          Request food donations for your organization. Provide the details below and track your requests.
         </p>
 
         {/* Request Form */}
@@ -79,7 +109,7 @@ const NGO = () => {
               name="foodType"
               value={formData.foodType}
               onChange={handleChange}
-              placeholder="Food Type"
+              placeholder="Food Type (e.g. Cooked, Dry, Grains)"
               className="p-3 border rounded"
               required
             />
@@ -88,7 +118,7 @@ const NGO = () => {
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
-              placeholder="Quantity"
+              placeholder="Quantity (e.g. 50 meals)"
               className="p-3 border rounded"
               required
             />
@@ -97,7 +127,7 @@ const NGO = () => {
               name="location"
               value={formData.location}
               onChange={handleChange}
-              placeholder="Location"
+              placeholder="Delivery/Pickup Location"
               className="p-3 border rounded"
               required
             />
@@ -110,6 +140,30 @@ const NGO = () => {
               <option value="Normal">Normal</option>
               <option value="Urgent">Urgent</option>
             </select>
+            <input
+              type="date"
+              name="preferredDate"
+              value={formData.preferredDate}
+              onChange={handleChange}
+              placeholder="Preferred Date"
+              className="p-3 border rounded"
+            />
+            <input
+              type="text"
+              name="contactNumber"
+              value={formData.contactNumber}
+              onChange={handleChange}
+              placeholder="Contact Number"
+              className="p-3 border rounded"
+            />
+            <textarea
+              name="specialNotes"
+              value={formData.specialNotes}
+              onChange={handleChange}
+              placeholder="Special Notes (e.g. no spicy food, for children)"
+              rows="3"
+              className="p-3 border rounded col-span-1 md:col-span-2"
+            />
             <div className="md:col-span-2">
               <button
                 type="submit"
@@ -132,15 +186,18 @@ const NGO = () => {
                 <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
                   <FaBoxOpen /> {req.foodType || 'N/A'}
                 </h3>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaFlag /> Urgency: {req.urgency || 'N/A'}
-                </p>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaClock /> Quantity: {req.quantity || 'N/A'}
-                </p>
-                <p className="text-gray-700 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Location: {req.location || 'N/A'}
-                </p>
+                <p className="text-gray-700 flex items-center gap-2"><FaFlag /> Urgency: {req.urgency || 'N/A'}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaClock /> Quantity: {req.quantity || 'N/A'}</p>
+                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.location || 'N/A'}</p>
+                {req.preferredDate && (
+                  <p className="text-gray-700"><strong>Preferred Date:</strong> {new Date(req.preferredDate).toLocaleDateString()}</p>
+                )}
+                {req.contactNumber && (
+                  <p className="text-gray-700"><strong>Contact:</strong> {req.contactNumber}</p>
+                )}
+                {req.specialNotes && (
+                  <p className="text-gray-600 italic"><strong>Note:</strong> {req.specialNotes}</p>
+                )}
                 <p className="text-gray-600 mt-2">
                   <strong>Status:</strong> {req.status || 'Pending'}
                 </p>

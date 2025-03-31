@@ -6,10 +6,18 @@ const router = express.Router();
 // ✅ Create a new request
 router.post('/', async (req, res) => {
   try {
-    console.log("🚀 Incoming form data:", req.body); // ✅ Add this
-    const { foodType, quantity, location, urgency, receiver } = req.body;
+    const {
+      foodType,
+      quantity,
+      location,
+      urgency,
+      receiver,
+      preferredDate,
+      contactNumber,
+      specialNotes
+    } = req.body;
 
-    // ✅ Log incoming request for debugging
+    // ✅ Log for debugging
     console.log('📦 New request received:', req.body);
 
     // ✅ Validate required fields
@@ -26,14 +34,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ✅ Create and save the request
     const request = await Request.create({
       foodType,
       quantity,
       location,
       urgency,
       receiver,
-      status: 'Pending' // Optional: default fallback (should be in schema too)
+      preferredDate: preferredDate || null,
+      contactNumber: contactNumber || '',
+      specialNotes: specialNotes || '',
+      status: 'Pending'
     });
 
     res.status(201).json(request);
@@ -46,14 +56,19 @@ router.post('/', async (req, res) => {
 // ✅ Get all requests OR requests filtered by receiver ID
 // Usage: /api/requests?receiver=NGO_ID
 router.get('/', async (req, res) => {
-  const { receiver } = req.query;
-  const filter = receiver ? { receiver } : {};
-  const requests = await Request.find(filter)
-    .populate('receiver')
-    .populate('donation')
-    .sort({ createdAt: -1 });
-  res.json(requests);
-});
+  try {
+    const { receiver } = req.query;
+    const filter = receiver ? { receiver } : {};
+    const requests = await Request.find(filter)
+      .populate('receiver')
+      .populate('donation')
+      .sort({ requestedAt: -1 });
 
+    res.json(requests);
+  } catch (error) {
+    console.error('❌ Error fetching requests:', error.message);
+    res.status(500).json({ error: 'Server error while fetching requests.' });
+  }
+});
 
 module.exports = router;

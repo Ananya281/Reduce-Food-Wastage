@@ -18,6 +18,18 @@ const requestSchema = new mongoose.Schema({
     enum: ['Normal', 'Urgent'],
     default: 'Normal',
   },
+  preferredDate: {
+    type: Date,
+    default: null,
+  },
+  contactNumber: {
+    type: String,
+    default: '',
+  },
+  specialNotes: {
+    type: String,
+    default: '',
+  },
   receiver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
