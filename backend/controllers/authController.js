@@ -38,7 +38,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ token, user: newUser });
   } catch (err) {
     console.error("❌ Registration Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error during registration' });
   }
 };
 
@@ -58,7 +58,7 @@ exports.login = async (req, res) => {
     const token = generateToken(user);
     res.json({ token, user });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error during login' });
   }
 };
 
@@ -77,13 +77,17 @@ exports.googleRegister = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, sub: googleId } = payload;
 
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Google payload missing essential info' });
+    }
+
     let user = await User.findOne({ email });
 
     if (!user) {
       user = await User.create({
         fullName: name,
         email,
-        password: '',  // Not needed for Google OAuth
+        password: '',  // No password for Google users
         role,
         googleId,
       });
@@ -93,7 +97,7 @@ exports.googleRegister = async (req, res) => {
     res.status(200).json({ token, user });
   } catch (error) {
     console.error('❌ Google Register Error:', error.message);
-    res.status(500).json({ error: 'Google register failed' });
+    return res.status(500).json({ error: 'Google register failed. Please try again later.' });
   }
 };
 
@@ -112,6 +116,8 @@ exports.googleLogin = async (req, res) => {
     const payload = ticket.getPayload();
     const { email } = payload;
 
+    if (!email) return res.status(400).json({ error: 'Invalid Google token' });
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not registered' });
 
@@ -119,6 +125,6 @@ exports.googleLogin = async (req, res) => {
     res.status(200).json({ token, user });
   } catch (error) {
     console.error('❌ Google Login Error:', error.message);
-    res.status(500).json({ error: 'Google login failed' });
+    res.status(500).json({ error: 'Google login failed. Please try again.' });
   }
 };
