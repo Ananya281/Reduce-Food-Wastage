@@ -1,8 +1,5 @@
 # 🍽️ FoodSaver - Empower Communities, Feed the Needy
 
-## 🌐 Live Demo
-Visit: [foodsaver.vercel.app](https://foodsaver.vercel.app)
-
 ---
 
 ## 📌 About the Project
