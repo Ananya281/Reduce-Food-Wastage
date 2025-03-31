@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Full name is required'],
     trim: true,
-    minlength: 2,
+    minlength: [2, 'Full name must be at least 2 characters long'],
   },
 
   email: {
@@ -20,21 +20,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     minlength: [6, 'Password must be at least 6 characters'],
     required: function () {
-      // Password is required only if Google ID is not present
-      return !this.googleId;
+      return !this.googleId; // Required only if not a Google user
     },
     select: false, // Prevent password from being returned in queries
   },
 
   role: {
     type: String,
-    enum: ['Donor', 'NGOs', 'Volunteer'],
+    enum: {
+      values: ['Donor', 'NGOs', 'Volunteer'],
+      message: '{VALUE} is not a valid role',
+    },
     required: [true, 'Role is required'],
   },
 
   googleId: {
     type: String,
-    default: null, // Only present if user registered via Google
+    default: null,
   },
 
   createdAt: {
@@ -42,5 +44,7 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   }
 }, {
-  versionKey: false, // Optional: remove __v field
+  versionKey: false,
 });
+
+module.exports = mongoose.model('User', userSchema);

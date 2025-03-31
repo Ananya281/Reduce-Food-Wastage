@@ -23,10 +23,15 @@ exports.register = async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
 
+    if (!fullName || !email || !password || !role) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await User.create({
       fullName,
       email,
@@ -37,7 +42,7 @@ exports.register = async (req, res) => {
     const token = generateToken(newUser);
     res.status(201).json({ token, user: newUser });
   } catch (err) {
-    console.error("❌ Registration Error:", err);
+    console.error("❌ Registration Error:", err.message || err);
     res.status(500).json({ error: 'Server error during registration' });
   }
 };
@@ -49,6 +54,10 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -58,6 +67,7 @@ exports.login = async (req, res) => {
     const token = generateToken(user);
     res.json({ token, user });
   } catch (err) {
+    console.error('❌ Login Error:', err.message || err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };
@@ -77,8 +87,8 @@ exports.googleRegister = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, sub: googleId } = payload;
 
-    if (!email || !name) {
-      return res.status(400).json({ error: 'Google payload missing essential info' });
+    if (!email || !name || !googleId || !role) {
+      return res.status(400).json({ error: 'Incomplete Google user data' });
     }
 
     let user = await User.findOne({ email });
@@ -87,7 +97,7 @@ exports.googleRegister = async (req, res) => {
       user = await User.create({
         fullName: name,
         email,
-        password: '',  // No password for Google users
+        password: '', // empty password since it's a Google user
         role,
         googleId,
       });
@@ -96,8 +106,8 @@ exports.googleRegister = async (req, res) => {
     const token = generateToken(user);
     res.status(200).json({ token, user });
   } catch (error) {
-    console.error('❌ Google Register Error:', error.message);
-    return res.status(500).json({ error: 'Google register failed. Please try again later.' });
+    console.error('❌ Google Register Error:', error.message || error);
+    res.status(500).json({ error: 'Google register failed. Please try again later.' });
   }
 };
 
@@ -124,7 +134,7 @@ exports.googleLogin = async (req, res) => {
     const token = generateToken(user);
     res.status(200).json({ token, user });
   } catch (error) {
-    console.error('❌ Google Login Error:', error.message);
+    console.error('❌ Google Login Error:', error.message || error);
     res.status(500).json({ error: 'Google login failed. Please try again.' });
   }
 };
