@@ -25,6 +25,12 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const navigateToDashboard = (role) => {
+    if (role === 'Donor') navigate('/donor');
+    else if (role === 'NGOs') navigate('/ngo');
+    else if (role === 'Volunteer') navigate('/volunteer');
+  };
+
   const handleRegister = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
@@ -34,21 +40,20 @@ const Register = () => {
       });
 
       const data = await res.json();
+      console.log('📦 Register Response:', data);
 
-      if (data._id) {
-        localStorage.setItem('userId', data._id);
-        localStorage.setItem('userRole', formData.role);
-
-        showSuccess();
-        if (formData.role === 'Donor') navigate('/donor');
-        else if (formData.role === 'NGOs') navigate('/ngo');
-        else if (formData.role === 'Volunteer') navigate('/volunteer');
-      } else {
-        showError('Registration failed');
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
+
+      localStorage.setItem('userId', data.user._id); // ✅ Fixed here
+      localStorage.setItem('userRole', formData.role);
+
+      showSuccess();
+      navigateToDashboard(formData.role);
     } catch (error) {
-      console.error(error);
-      showError('Error during registration');
+      console.error('❌ Register Error:', error);
+      showError(error.message);
     }
   };
 
@@ -73,18 +78,17 @@ const Register = () => {
       });
 
       const data = await res.json();
+      console.log('📦 Google Register Response:', data);
 
-      if (data.user) {
-        localStorage.setItem('userId', data.user._id);
-        localStorage.setItem('userRole', googleSelectedRole);
-
-        showSuccess();
-        if (googleSelectedRole === 'Donor') navigate('/donor');
-        else if (googleSelectedRole === 'NGOs') navigate('/ngo');
-        else if (googleSelectedRole === 'Volunteer') navigate('/volunteer');
-      } else {
-        showError('Google Sign-Up failed');
+      if (!res.ok || !data.user) {
+        throw new Error(data.error || 'Google registration failed');
       }
+
+      localStorage.setItem('userId', data.user._id);
+      localStorage.setItem('userRole', googleSelectedRole);
+
+      showSuccess();
+      navigateToDashboard(googleSelectedRole);
     } catch (err) {
       console.error(err);
       showError('Error during Google Sign-Up');

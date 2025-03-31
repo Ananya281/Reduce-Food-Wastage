@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FaUtensils,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaClipboardCheck,
-  FaPhone,
-  FaArchive,
-  FaInfoCircle,
-  FaBoxes
+  FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck,
+  FaPhone, FaArchive, FaInfoCircle, FaBoxes
 } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Donor = () => {
   const [donations, setDonations] = useState([]);
@@ -30,30 +26,39 @@ const Donor = () => {
   const donorId = localStorage.getItem('userId');
   const [showWelcome, setShowWelcome] = useState(false);
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
   useEffect(() => {
+    if (!donorId) {
+      toast.error('⚠️ Please login again. User ID missing.');
+      navigate('/');
+      return;
+    }
+
     if (routeLocation.state?.welcome) {
       setShowWelcome(true);
       setTimeout(() => setShowWelcome(false), 3000);
     }
 
-    getCurrentLocation(); // Geolocation (optional)
+    getCurrentLocation();
     fetchDonations();
     fetchPreviousLocations();
   }, []);
 
   const fetchDonations = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations/donor/${donorId}`);
+      const res = await fetch(`${BACKEND_URL}/api/donations/donor/${donorId}`);
       const data = await res.json();
       setDonations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching donations:', err);
+      toast.error("❌ Failed to load your donations.");
     }
   };
 
   const fetchPreviousLocations = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations/locations/${donorId}`);
+      const res = await fetch(`${BACKEND_URL}/api/donations/locations/${donorId}`);
       const data = await res.json();
       setLocationSuggestions(data || []);
     } catch (err) {
@@ -85,15 +90,23 @@ const Donor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const { foodItem, quantity, location, expiryDate } = formData;
+    if (!foodItem.trim() || !quantity.trim() || !location.trim() || !expiryDate) {
+      toast.warn("⚠️ Please fill all required fields");
+      return;
+    }
+
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations`, {
+      const res = await fetch(`${BACKEND_URL}/api/donations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, donor: donorId })
       });
+
       const data = await res.json();
       if (data._id) {
-        alert('Donation created!');
+        toast.success('✅ Donation created!');
         setFormData({
           foodItem: '',
           foodType: '',
@@ -107,11 +120,11 @@ const Donor = () => {
         fetchDonations();
         fetchPreviousLocations();
       } else {
-        alert('Failed to create donation');
+        toast.error('❌ Failed to create donation');
       }
     } catch (error) {
       console.error(error);
-      alert('Error during donation creation');
+      toast.error('❌ Error during donation creation');
     }
   };
 

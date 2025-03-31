@@ -4,50 +4,65 @@ const requestSchema = new mongoose.Schema({
   foodType: {
     type: String,
     required: true,
+    trim: true
   },
   quantity: {
     type: String,
     required: true,
+    trim: true
   },
   location: {
     type: String,
     required: true,
+    trim: true
   },
   urgency: {
     type: String,
     enum: ['Normal', 'Urgent'],
-    default: 'Normal',
+    default: 'Normal'
   },
   preferredDate: {
     type: Date,
-    default: null,
+    default: null
   },
   contactNumber: {
     type: String,
-    default: '',
+    match: /^[6-9]\d{9}$/, // Optional: basic validation for Indian mobile format
+    default: ''
   },
   specialNotes: {
     type: String,
-    default: '',
+    trim: true,
+    default: ''
   },
   receiver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: true
   },
   donation: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Donation',
-    default: null,
+    default: null
   },
   status: {
     type: String,
-    default: 'Pending',
+    enum: ['Pending', 'Accepted', 'Completed', 'Rejected'],
+    default: 'Pending'
   },
   requestedAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date
   }
+});
+
+// 🔁 Automatically update `updatedAt` field on save
+requestSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Request', requestSchema);

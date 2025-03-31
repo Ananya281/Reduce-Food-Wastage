@@ -1,18 +1,25 @@
-// File: backend/routes/volunteerRoutes.js
 const express = require('express');
+const mongoose = require('mongoose');
 const Volunteer = require('../models/Volunteer');
 const Donation = require('../models/Donation');
 
 const router = express.Router();
 
-// Register or update volunteer profile
+// ==============================
+// 🔐 Register or update volunteer
+// ==============================
 router.post('/', async (req, res) => {
   try {
-    const { user, assignedDonations } = req.body;
+    const { user, assignedDonations = [] } = req.body;
+
+    if (!user || !mongoose.Types.ObjectId.isValid(user)) {
+      return res.status(400).json({ error: 'Valid user ID is required.' });
+    }
+
     let volunteer = await Volunteer.findOne({ user });
 
     if (volunteer) {
-      volunteer.assignedDonations = assignedDonations || volunteer.assignedDonations;
+      volunteer.assignedDonations = assignedDonations.length ? assignedDonations : volunteer.assignedDonations;
       await volunteer.save();
     } else {
       volunteer = await Volunteer.create({ user, assignedDonations });
@@ -20,27 +27,40 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(volunteer);
   } catch (err) {
+    console.error('❌ Volunteer register error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get all volunteers
+// ==============================
+// 📋 Get all volunteers
+// ==============================
 router.get('/', async (req, res) => {
   try {
-    const volunteers = await Volunteer.find().populate('user').populate('assignedDonations');
-    res.json(volunteers);
+    const volunteers = await Volunteer.find()
+      .populate('user', 'fullName email')
+      .populate('assignedDonations', 'foodItem location status')
+      .lean();
+
+    res.status(200).json(volunteers);
   } catch (err) {
+    console.error('❌ Error fetching volunteers:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Accept a donation by volunteer
+// ==============================
+// 🚚 Accept a donation by volunteer
+// ==============================
 router.patch('/accept/:id', async (req, res) => {
   try {
     const donationId = req.params.id;
     const { volunteer } = req.body;
 
-    // Update donation to set status and assigned volunteer
+    if (!mongoose.Types.ObjectId.isValid(donationId) || !mongoose.Types.ObjectId.isValid(volunteer)) {
+      return res.status(400).json({ error: 'Invalid donation or volunteer ID' });
+    }
+
     const updatedDonation = await Donation.findByIdAndUpdate(
       donationId,
       { status: 'In Transit', volunteer },
@@ -51,18 +71,15 @@ router.patch('/accept/:id', async (req, res) => {
       return res.status(404).json({ error: 'Donation not found' });
     }
 
-    // Add donation to volunteer profile (optional)
     let vol = await Volunteer.findOne({ user: volunteer });
-    if (vol) {
-      if (!vol.assignedDonations.includes(donationId)) {
-        vol.assignedDonations.push(donationId);
-        await vol.save();
-      }
+    if (vol && !vol.assignedDonations.includes(donationId)) {
+      vol.assignedDonations.push(donationId);
+      await vol.save();
     }
 
-    res.json(updatedDonation);
+    res.status(200).json(updatedDonation);
   } catch (err) {
-    console.error(err);
+    console.error('❌ Accept donation error:', err.message);
     res.status(500).json({ error: 'Failed to accept donation' });
   }
 });

@@ -6,35 +6,36 @@ const donationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  foodItem: {
-    type: String,
-    required: true
-  },
-  foodType: {
-    type: String,
-    enum: ['Cooked', 'Packaged', 'Raw'],
-    default: 'Cooked'
-  },
+foodType: {
+  type: String,
+  enum: ['Veg', 'Non-Veg', 'Canned', 'Cooked', 'Packaged', 'Raw', 'Other'], // ← added your used values
+  default: 'Veg'
+}
+,
   quantity: {
     type: String,
     required: true
   },
   packaging: {
-    type: String // e.g., 'Plastic Box', 'Paper Bag', etc.
+    type: String, // e.g., 'Plastic Box', 'Paper Bag', etc.
+    trim: true
   },
   location: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   expiryDate: {
     type: Date,
     required: true
   },
   contactNumber: {
-    type: String // Optional, for delivery coordination
+    type: String,
+    match: /^[6-9]\d{9}$/ // Optional: Validate Indian phone format
   },
   storageInstructions: {
-    type: String // Optional, e.g., "Keep refrigerated", etc.
+    type: String,
+    trim: true
   },
   status: {
     type: String,
@@ -44,7 +45,16 @@ const donationSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date
   }
+});
+
+// 🔁 Update `updatedAt` before saving
+donationSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Donation', donationSchema);

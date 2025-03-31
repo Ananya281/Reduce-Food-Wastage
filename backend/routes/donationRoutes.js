@@ -3,8 +3,12 @@ const Donation = require('../models/Donation');
 
 const router = express.Router();
 
-// ✅ Create a new donation
+// ============================
+// 🥗 Create a New Donation
+// ============================
 router.post('/', async (req, res) => {
+  console.log("📦 Incoming donation payload:", req.body);  // Add this log
+
   try {
     const {
       donor,
@@ -36,45 +40,59 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(donation);
   } catch (err) {
-    console.error('Error creating donation:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error creating donation:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// ✅ Get all donations
+// ============================
+// 📥 Get All Donations
+// ============================
 router.get('/', async (req, res) => {
   try {
     const donations = await Donation.find().populate('donor');
     res.status(200).json(donations);
   } catch (err) {
-    console.error('Error fetching donations:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error fetching all donations:', err);
+    res.status(500).json({ error: 'Server error while fetching donations' });
   }
 });
 
-// ✅ Get donations by donor ID
+// ============================
+// 📥 Get Donations by Donor ID
+// ============================
 router.get('/donor/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
+    if (!donorId) {
+      return res.status(400).json({ error: 'Donor ID required' });
+    }
+
     const donations = await Donation.find({ donor: donorId }).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
-    console.error('Error fetching donor-specific donations:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error fetching donor-specific donations:', err);
+    res.status(500).json({ error: 'Server error while fetching donor donations' });
   }
 });
 
-// ✅ NEW: Get unique previous locations for a donor
+// ============================
+// 📍 Get Unique Previous Locations
+// ============================
 router.get('/locations/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
-    const donations = await Donation.find({ donor: donorId }).sort({ createdAt: -1 });
+    if (!donorId) {
+      return res.status(400).json({ error: 'Donor ID required' });
+    }
 
-    const uniqueLocations = [...new Set(donations.map(d => d.location))];
+    const donations = await Donation.find({ donor: donorId }).select('location').sort({ createdAt: -1 });
+    const uniqueLocations = [...new Set(donations.map(d => d.location?.trim()).filter(Boolean))];
+
     res.status(200).json(uniqueLocations);
   } catch (err) {
-    console.error('Error fetching donor locations:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error fetching donor locations:', err);
+    res.status(500).json({ error: 'Server error while fetching donor locations' });
   }
 });
 
