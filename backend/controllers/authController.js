@@ -114,6 +114,9 @@ exports.googleRegister = async (req, res) => {
 // ============================
 // 🔓 Google Login
 // ============================
+// ============================
+// 🔓 Google Login (Only if user exists)
+// ============================
 exports.googleLogin = async (req, res) => {
   const { credential } = req.body;
 
@@ -124,21 +127,14 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;
+    const { email } = payload;
 
     if (!email) return res.status(400).json({ error: 'Invalid Google token' });
 
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-    // ✅ Auto-register if not already present
     if (!user) {
-      user = await User.create({
-        fullName: name || 'Google User',
-        email,
-        password: undefined,
-        role: 'Donor', // Default role if needed
-        googleId,
-      });
+      return res.status(404).json({ error: 'User not registered. Please sign up first.' });
     }
 
     const token = generateToken(user);
