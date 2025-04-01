@@ -22,7 +22,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-r from-green-100 via-white to-green-50 h-[100vh] flex items-center justify-center text-center px-6">
+    <section id="home" className="relative bg-gradient-to-r from-green-100 via-white to-green-50 h-[100vh] flex items-center justify-center text-center px-6">
       <div className="max-w-4xl mx-auto z-10">
         <h1 className="text-4xl md:text-6xl font-bold text-green-800 mb-4 leading-tight">
           Reduce Food Wastage, <br /> Feed the Needy
