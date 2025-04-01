@@ -42,7 +42,7 @@ exports.register = async (req, res) => {
     const token = generateToken(newUser);
     res.status(201).json({ token, user: newUser });
   } catch (err) {
-    console.error("❌ Registration Error:", err.message || err);
+    console.error("❌ Registration Error:", err);
     res.status(500).json({ error: 'Server error during registration' });
   }
 };
@@ -58,7 +58,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -67,7 +67,7 @@ exports.login = async (req, res) => {
     const token = generateToken(user);
     res.json({ token, user });
   } catch (err) {
-    console.error('❌ Login Error:', err.message || err);
+    console.error('❌ Login Error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };
@@ -97,7 +97,7 @@ exports.googleRegister = async (req, res) => {
       user = await User.create({
         fullName: name,
         email,
-        password: '', // empty password since it's a Google user
+        password: undefined, // ✅ Avoid empty string
         role,
         googleId,
       });
@@ -106,7 +106,7 @@ exports.googleRegister = async (req, res) => {
     const token = generateToken(user);
     res.status(200).json({ token, user });
   } catch (error) {
-    console.error('❌ Google Register Error:', error.message || error);
+    console.error('❌ Google Register Error:', error);
     res.status(500).json({ error: 'Google register failed. Please try again later.' });
   }
 };
@@ -124,17 +124,27 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email } = payload;
+    const { email, name, sub: googleId } = payload;
 
     if (!email) return res.status(400).json({ error: 'Invalid Google token' });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: 'User not registered' });
+    let user = await User.findOne({ email });
+
+    // ✅ Auto-register if not already present
+    if (!user) {
+      user = await User.create({
+        fullName: name || 'Google User',
+        email,
+        password: undefined,
+        role: 'Donor', // Default role if needed
+        googleId,
+      });
+    }
 
     const token = generateToken(user);
     res.status(200).json({ token, user });
   } catch (error) {
-    console.error('❌ Google Login Error:', error.message || error);
+    console.error('❌ Google Login Error:', error);
     res.status(500).json({ error: 'Google login failed. Please try again.' });
   }
 };

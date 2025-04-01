@@ -1,5 +1,4 @@
-// File: frontend/src/pages/Login.js
-
+// frontend/src/pages/Login.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
@@ -15,12 +14,18 @@ const Login = () => {
   const showSuccess = () => toast.success('🎉 Welcome to your Dashboard!');
   const showError = (msg) => toast.error(`❌ ${msg}`);
 
+  const navigateToDashboard = (role) => {
+    if (role === 'Donor') navigate('/donor');
+    else if (role === 'NGOs') navigate('/ngo');
+    else if (role === 'Volunteer') navigate('/volunteer');
+  };
+
   const handleLogin = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -35,7 +40,7 @@ const Login = () => {
         showError(data.error || 'Invalid credentials');
       }
     } catch (error) {
-      console.error(error);
+      console.error('❌ Login Error:', error);
       showError('Login failed');
     }
   };
@@ -45,10 +50,11 @@ const Login = () => {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential })
+        body: JSON.stringify({ credential: credentialResponse.credential }),
       });
 
       const data = await res.json();
+      console.log('📦 Google Login Response:', data);
 
       if (res.ok && data.user) {
         localStorage.setItem('userId', data.user._id);
@@ -60,15 +66,9 @@ const Login = () => {
         showError(data.error || 'Google login failed');
       }
     } catch (err) {
-      console.error(err);
+      console.error('❌ Google Login Error:', err);
       showError('Error during Google login');
     }
-  };
-
-  const navigateToDashboard = (role) => {
-    if (role === 'Donor') navigate('/donor');
-    else if (role === 'NGOs') navigate('/ngo');
-    else if (role === 'Volunteer') navigate('/volunteer');
   };
 
   const handleGoogleError = () => {
@@ -118,7 +118,6 @@ const Login = () => {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
-              useOneTap
             />
           </div>
 

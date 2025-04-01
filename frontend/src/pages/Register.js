@@ -18,6 +18,7 @@ const Register = () => {
   const [googleCredential, setGoogleCredential] = useState(null);
   const [showRoleSelect, setShowRoleSelect] = useState(false);
   const [googleSelectedRole, setGoogleSelectedRole] = useState('Donor');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const showSuccess = () => toast.success('🎉 Welcome to your Dashboard!');
   const showError = (msg) => toast.error(`❌ ${msg}`);
@@ -71,6 +72,8 @@ const Register = () => {
     try {
       if (!googleCredential) throw new Error('Missing Google credential');
 
+      setIsGoogleLoading(true);
+
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/google-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +97,10 @@ const Register = () => {
       navigateToDashboard(googleSelectedRole);
     } catch (err) {
       console.error('❌ Google Sign-Up Error:', err);
-      showError('Error during Google Sign-Up');
+      showError(err.message || 'Error during Google Sign-Up');
+    } finally {
+      setIsGoogleLoading(false);
+      setShowRoleSelect(false);
     }
   };
 
@@ -162,8 +168,9 @@ const Register = () => {
             <button
               onClick={handleGoogleRoleSubmit}
               className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 transition"
+              disabled={isGoogleLoading}
             >
-              Continue
+              {isGoogleLoading ? 'Registering...' : 'Continue'}
             </button>
           </div>
         </div>
