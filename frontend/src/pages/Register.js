@@ -129,11 +129,12 @@ const Register = () => {
             <option value="Volunteer">Volunteer</option>
           </select>
 
-          <input name="fullName" type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
-          <input name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
-          <input name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
+          <input id ="name" name="fullName" type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
+          <input id="email" name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
+          <input id="password" name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
 
-          <button onClick={handleRegister} className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition">
+          <button onClick={handleRegister}
+          id="register-btn" className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition">
             Register
           </button>
 

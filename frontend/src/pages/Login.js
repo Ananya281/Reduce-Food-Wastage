@@ -91,6 +91,7 @@ const Login = () => {
           <h2 className="text-3xl font-bold text-green-700 mb-6 text-center">Welcome Back</h2>
 
           <input
+            id="email"
             type="email"
             placeholder="Email"
             className="w-full p-3 mb-4 border rounded"
@@ -98,6 +99,7 @@ const Login = () => {
             required
           />
           <input
+            id="password"
             type="password"
             placeholder="Password"
             className="w-full p-3 mb-4 border rounded"
@@ -105,7 +107,7 @@ const Login = () => {
             required
           />
 
-          <button
+          <button id="login-btn"
             onClick={handleLogin}
             className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition"
           >
