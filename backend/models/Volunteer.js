@@ -5,7 +5,7 @@ const volunteerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true  // ✅ Ensures one-to-one mapping with a user
+    unique: true // Ensures one-to-one mapping with a user
   },
   assignedDonations: [
     {
@@ -19,13 +19,17 @@ const volunteerSchema = new mongoose.Schema({
   },
   currentLocation: {
     type: String,
-    default: '', // 📍 Can be used later for route optimization
-    trim: true
+    trim: true,
+    default: ''
   },
   contactNumber: {
     type: String,
-    match: /^[6-9]\d{9}$/, // Optional: Indian mobile number format
+    match: /^\d{10}$/, // Allows any 10-digit mobile number
     default: ''
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
@@ -33,7 +37,7 @@ const volunteerSchema = new mongoose.Schema({
   }
 });
 
-// 🔁 Auto-update timestamp
+// Auto-update `updatedAt` before saving
 volunteerSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

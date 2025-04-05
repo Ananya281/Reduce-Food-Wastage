@@ -1,3 +1,4 @@
+// models/Donation.js
 const mongoose = require('mongoose');
 
 const donationSchema = new mongoose.Schema({
@@ -6,18 +7,22 @@ const donationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-foodType: {
-  type: String,
-  enum: ['Veg', 'Non-Veg', 'Canned', 'Cooked', 'Packaged', 'Raw', 'Other'], // ← added your used values
-  default: 'Veg'
-}
-,
+  foodItem: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  foodType: {
+    type: String,
+    enum: ['Veg', 'Non-Veg', 'Canned', 'Cooked', 'Packaged', 'Raw', 'Other'],
+    default: 'Veg'
+  },
   quantity: {
     type: String,
     required: true
   },
   packaging: {
-    type: String, // e.g., 'Plastic Box', 'Paper Bag', etc.
+    type: String,
     trim: true
   },
   location: {
@@ -31,7 +36,8 @@ foodType: {
   },
   contactNumber: {
     type: String,
-    match: /^[6-9]\d{9}$/ // Optional: Validate Indian phone format
+    match: /^\d{10}$/,
+    required: false
   },
   storageInstructions: {
     type: String,
@@ -42,6 +48,11 @@ foodType: {
     enum: ['Available', 'In Transit', 'Delivered'],
     default: 'Available'
   },
+  volunteer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -51,7 +62,6 @@ foodType: {
   }
 });
 
-// 🔁 Update `updatedAt` before saving
 donationSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

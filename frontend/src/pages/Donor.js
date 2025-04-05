@@ -43,12 +43,14 @@ const Donor = () => {
     getCurrentLocation();
     fetchDonations();
     fetchPreviousLocations();
+
   }, []);
 
   const fetchDonations = async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/donations/donor/${donorId}`);
       const data = await res.json();
+      console.log("✅ Fetched donations:", data);
       setDonations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching donations:', err);
@@ -71,15 +73,21 @@ const Donor = () => {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, {
+            headers: {
+              'User-Agent': 'food-donation-app/1.0'
+            }
+          });
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
           setFormData(prev => ({ ...prev, location: address }));
         } catch (err) {
           console.error("Reverse geocoding failed:", err);
+          toast.error("❌ Failed to auto-fill location.");
         }
       }, (error) => {
         console.warn("Geolocation error:", error.message);
+        toast.error("❌ Unable to access your location.");
       });
     }
   };
@@ -151,7 +159,19 @@ const Donor = () => {
           <h2 className="text-2xl font-semibold text-green-700 mb-4">Create a Donation</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input name="foodItem" value={formData.foodItem} onChange={handleChange} placeholder="Food Item" className="p-3 border rounded" required />
-            <input name="foodType" value={formData.foodType} onChange={handleChange} placeholder="Food Type (e.g., Veg, Non-Veg)" className="p-3 border rounded" />
+
+            <select
+              name="foodType"
+              value={formData.foodType}
+              onChange={handleChange}
+              className="p-3 border rounded"
+              required
+            >
+              <option value="" disabled>Select Food Type</option>
+              <option value="Veg">Veg</option>
+              <option value="Non-Veg">Non-Veg</option>
+            </select>
+
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity (e.g., 10kg)" className="p-3 border rounded" required />
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
 
@@ -195,7 +215,10 @@ const Donor = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {donations.map((donation) => (
               <div key={donation._id} className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
-                <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2"><FaUtensils /> {donation.foodItem}</h3>
+                <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
+                  <FaUtensils />
+                  <span className="font-bold">Food Item:</span> {donation.foodItem || 'Not Provided'}
+                </h3>
                 <p className="text-gray-700 flex items-center gap-2"><FaClipboardCheck /> Quantity: {donation.quantity}</p>
                 {donation.foodType && <p className="text-gray-700 flex items-center gap-2"><FaBoxes /> Food Type: {donation.foodType}</p>}
                 {donation.packaging && <p className="text-gray-700 flex items-center gap-2"><FaArchive /> Packaging: {donation.packaging}</p>}

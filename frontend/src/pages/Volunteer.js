@@ -9,48 +9,70 @@ const Volunteer = () => {
   const [myPickups, setMyPickups] = useState([]);
   const navigate = useNavigate();
 
-  const volunteerId = localStorage.getItem('userId'); // ✅ consistent key across all roles
+  const volunteerId = localStorage.getItem('userId');
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
-  const fetchDonations = async () => {
+  // Fetch available donations
+  const fetchAvailableDonations = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/donations`);
+      const res = await fetch(`${BACKEND_URL}/api/donations`);
       const data = await res.json();
 
       if (Array.isArray(data)) {
         setVolunteerTasks(data.filter(d => d.status === 'Available'));
-        setMyPickups(data.filter(d => d.status === 'In Transit' && d.volunteer === volunteerId));
       } else {
         setVolunteerTasks([]);
-        setMyPickups([]);
       }
     } catch (error) {
       toast.error("❌ Failed to fetch donations");
     }
   };
 
-  useEffect(() => {
-    fetchDonations();
-  }, []);
+  // Fetch pickups already assigned to this volunteer
+  const fetchVolunteerPickups = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/volunteers/${volunteerId}/pickups`);
+      const data = await res.json();
 
+      if (Array.isArray(data)) {
+        setMyPickups(data);
+      } else {
+        setMyPickups([]);
+      }
+    } catch (error) {
+      console.error("Fetch pickups error:", error);
+      toast.error("❌ Failed to fetch pickups");
+    }
+  };
+
+  useEffect(() => {
+    if (volunteerId) {
+      fetchAvailableDonations();
+      fetchVolunteerPickups();
+    }
+  }, [volunteerId]);
+
+  // Accept a donation
   const handleAccept = async (donationId) => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/volunteers/accept/${donationId}`, {
+      const res = await fetch(`${BACKEND_URL}/api/volunteers/accept/${donationId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ volunteer: volunteerId })
+        body: JSON.stringify({ volunteer: volunteerId }),
       });
 
       const data = await res.json();
 
       if (data._id) {
         toast.success("✅ Pickup accepted!");
-        fetchDonations();
+        setVolunteerTasks(prev => prev.filter(d => d._id !== donationId));
+        setMyPickups(prev => [...prev, data]);
       } else {
         toast.error("❌ Failed to accept pickup");
       }
     } catch (error) {
-      toast.error("❌ Error updating pickup");
       console.error(error);
+      toast.error("❌ Error accepting pickup");
     }
   };
 
@@ -79,7 +101,9 @@ const Volunteer = () => {
                 </h3>
                 <p className="text-gray-700 flex items-center gap-2"><FaTruck /> Quantity: {donation.quantity}</p>
                 <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {donation.location}</p>
-                <p className="text-gray-700 flex items-center gap-2"><FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleDateString()}</p>
+                <p className="text-gray-700 flex items-center gap-2">
+                  <FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleDateString()}
+                </p>
                 <button
                   onClick={() => handleAccept(donation._id)}
                   className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition"
@@ -104,6 +128,9 @@ const Volunteer = () => {
                 </h3>
                 <p className="text-gray-700 flex items-center gap-2"><FaTruck /> Quantity: {pickup.quantity}</p>
                 <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {pickup.location}</p>
+                <p className="text-gray-700 flex items-center gap-2">
+                  <FaCalendarAlt /> Expiry: {new Date(pickup.expiryDate).toLocaleDateString()}
+                </p>
                 <p className="text-gray-600 mt-2"><strong>Status:</strong> {pickup.status}</p>
               </div>
             ))}
