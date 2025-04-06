@@ -5,27 +5,33 @@ const volunteerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true // Ensures one-to-one mapping with a user
+    unique: true // one-to-one mapping
   },
-  assignedDonations: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Donation'
-    }
-  ],
   availability: {
     type: Boolean,
     default: true
   },
-  currentLocation: {
-    type: String,
-    trim: true,
-    default: ''
-  },
-  contactNumber: {
-    type: String,
-    match: /^\d{10}$/, // Allows any 10-digit mobile number
-    default: ''
+contactNumber: {
+  type: String,
+  required: true,
+  match: /^\d{10}$/, // ensures 10-digit mobile number
+  trim: true
+},
+currentLocation: {
+  type: String,
+  trim: true,
+  required: true
+},
+  locationCoordinates: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [0, 0]
+    }
   },
   createdAt: {
     type: Date,
@@ -37,7 +43,10 @@ const volunteerSchema = new mongoose.Schema({
   }
 });
 
-// Auto-update `updatedAt` before saving
+// Index for geospatial filtering (e.g., nearby donations)
+volunteerSchema.index({ locationCoordinates: '2dsphere' });
+
+// Auto-update updatedAt
 volunteerSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
