@@ -13,22 +13,22 @@ const {
 // ============================
 
 // 📥 Email/Password Authentication
-router.post('/register', register);   // ➕ Register user
-router.post('/login', login);         // 🔑 Login user
+router.post('/register', register);       // ➕ Register user (Donor/NGO/Volunteer)
+router.post('/login', login);             // 🔑 Login user
 
 // 🔐 Google OAuth Routes
 router.post('/google-register', googleRegister);  // ➕ Google Sign-Up
 router.post('/google-login', googleLogin);        // 🔓 Google Sign-In
 
 // ============================
-// (Optional) Token Verification (protected routes)
+// (Optional) Token Verification Middleware
 // ============================
 // const { verifyToken } = require('../middleware/authMiddleware');
 // router.get('/verify-token', verifyToken, (req, res) => res.json({ success: true }));
 
 // ============================
-// (Optional) Logout (handled on frontend via token removal)
+// (Optional) Logout (handled by frontend - token removal)
 // ============================
-// router.post('/logout', (req, res) => res.json({ message: "Logged out successfully" }));
+// router.post('/logout', (req, res) => res.json({ message: 'Logged out successfully' }));
 
 module.exports = router;

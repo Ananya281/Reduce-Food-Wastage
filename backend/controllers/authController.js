@@ -5,9 +5,6 @@ const { OAuth2Client } = require('google-auth-library');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// ============================
-// Helper: Generate JWT Token
-// ============================
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
@@ -21,28 +18,63 @@ const generateToken = (user) => {
 // ============================
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      role,
+      contactNumber,
+      location,
+      address,
+      vehicleAvailable,
+      availableStartTime,
+      availableEndTime,
+      ngoRegNumber,
+      ngoType,
+      dailyFoodNeed
+    } = req.body;
 
     if (!fullName || !email || !password || !role) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ error: 'User already exists' });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
       fullName,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
       role,
+      contactNumber,
+      location,
+      address,
+      vehicleAvailable,
+      availableStartTime,
+      availableEndTime,
+      ngoRegNumber,
+      ngoType,
+      dailyFoodNeed
     });
 
     const token = generateToken(newUser);
     res.status(201).json({ token, user: newUser });
+
   } catch (err) {
     console.error("❌ Registration Error:", err);
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ error: messages.join(', ') });
+    }
     res.status(500).json({ error: 'Server error during registration' });
   }
 };
@@ -58,7 +90,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -66,6 +98,7 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user);
     res.json({ token, user });
+
   } catch (err) {
     console.error('❌ Login Error:', err);
     res.status(500).json({ error: 'Server error during login' });
@@ -91,20 +124,21 @@ exports.googleRegister = async (req, res) => {
       return res.status(400).json({ error: 'Incomplete Google user data' });
     }
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       user = await User.create({
         fullName: name,
-        email,
-        password: undefined, // ✅ Avoid empty string
+        email: email.toLowerCase(),
+        password: undefined,
         role,
-        googleId,
+        googleId
       });
     }
 
     const token = generateToken(user);
     res.status(200).json({ token, user });
+
   } catch (error) {
     console.error('❌ Google Register Error:', error);
     res.status(500).json({ error: 'Google register failed. Please try again later.' });
@@ -113,9 +147,6 @@ exports.googleRegister = async (req, res) => {
 
 // ============================
 // 🔓 Google Login
-// ============================
-// ============================
-// 🔓 Google Login (Only if user exists)
 // ============================
 exports.googleLogin = async (req, res) => {
   const { credential } = req.body;
@@ -131,7 +162,7 @@ exports.googleLogin = async (req, res) => {
 
     if (!email) return res.status(400).json({ error: 'Invalid Google token' });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       return res.status(404).json({ error: 'User not registered. Please sign up first.' });
@@ -139,6 +170,7 @@ exports.googleLogin = async (req, res) => {
 
     const token = generateToken(user);
     res.status(200).json({ token, user });
+
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     res.status(500).json({ error: 'Google login failed. Please try again.' });

@@ -1,18 +1,32 @@
-// src/Register.js
+// Register.js with time range picker
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import loginImage from '../assets/savefood.jpeg';
+import TimePicker from 'react-time-picker';
+import 'react-time-picker/dist/TimePicker.css';
+import 'react-clock/dist/Clock.css';
 
 const Register = () => {
   const navigate = useNavigate();
+  const [showMore, setShowMore] = useState(false);
+  const [availableTime, setAvailableTime] = useState({ start: '', end: '' });
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     role: 'Donor',
+    contactNumber: '',
+    location: '',
+    address: '',
+    vehicleAvailable: '',
+    ngoRegNumber: '',
+    ngoType: '',
+    dailyFoodNeed: ''
   });
 
   const [googleCredential, setGoogleCredential] = useState(null);
@@ -24,7 +38,23 @@ const Register = () => {
   const showError = (msg) => toast.error(`❌ ${msg}`);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const fetchLocation = () => {
+    if (!navigator.geolocation) return showError("Geolocation not supported");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const loc = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+        setFormData(prev => ({ ...prev, location: loc }));
+      },
+      () => showError("Unable to get location")
+    );
   };
 
   const navigateToDashboard = (role) => {
@@ -34,23 +64,33 @@ const Register = () => {
   };
 
   const handleRegister = async () => {
+    const { fullName, email, password, contactNumber, location, role } = formData;
+
+    if (!fullName || !email || !password || !role) return showError("Fill all basic fields");
+    if (showMore) {
+      if (!contactNumber || !location) return showError("Fill additional fields");
+
+      if (
+        role === 'Volunteer' && (!formData.vehicleAvailable || !availableTime.start || !availableTime.end)
+      ) return showError("Fill volunteer details");
+
+      if (
+        role === 'NGOs' && (!formData.ngoRegNumber || !formData.ngoType || !formData.dailyFoodNeed)
+      ) return showError("Fill NGO details");
+    }
+
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, availableStartTime: availableTime.start, availableEndTime: availableTime.end })
       });
 
       const data = await res.json();
-      console.log('📦 Register Response:', data);
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
 
       localStorage.setItem('userId', data.user._id);
       localStorage.setItem('userRole', formData.role);
-
       showSuccess();
       navigateToDashboard(formData.role);
     } catch (error) {
@@ -64,31 +104,21 @@ const Register = () => {
     setShowRoleSelect(true);
   };
 
-  const handleGoogleError = () => {
-    showError('Google Sign Up failed');
-  };
+  const handleGoogleError = () => showError('Google Sign Up failed');
 
   const handleGoogleRoleSubmit = async () => {
     try {
       if (!googleCredential) throw new Error('Missing Google credential');
-
       setIsGoogleLoading(true);
 
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/google-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          credential: googleCredential,
-          role: googleSelectedRole
-        })
+        body: JSON.stringify({ credential: googleCredential, role: googleSelectedRole })
       });
 
       const data = await res.json();
-      console.log('📦 Google Register Response:', data);
-
-      if (!res.ok || !data.user) {
-        throw new Error(data.error || 'Google registration failed');
-      }
+      if (!res.ok || !data.user) throw new Error(data.error || 'Google registration failed');
 
       localStorage.setItem('userId', data.user._id);
       localStorage.setItem('userRole', googleSelectedRole);
@@ -96,8 +126,7 @@ const Register = () => {
       showSuccess();
       navigateToDashboard(googleSelectedRole);
     } catch (err) {
-      console.error('❌ Google Sign-Up Error:', err);
-      showError(err.message || 'Error during Google Sign-Up');
+      showError(err.message);
     } finally {
       setIsGoogleLoading(false);
       setShowRoleSelect(false);
@@ -107,7 +136,6 @@ const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-100 via-white to-green-50">
       <div className="absolute top-5 right-5 cursor-pointer text-2xl" onClick={() => navigate('/')}>✕</div>
-
       <div className="flex flex-col md:flex-row shadow-lg rounded-lg overflow-hidden w-full max-w-4xl bg-white mx-4 sm:mx-auto">
         <div className="hidden md:flex flex-col justify-center items-center bg-green-100 p-8 w-full md:w-1/2">
           <img src={loginImage} alt="Illustration" className="w-64 mb-6" />
@@ -116,37 +144,77 @@ const Register = () => {
 
         <div className="w-full md:w-1/2 p-8">
           <h2 className="text-3xl font-bold text-green-700 mb-6 text-center">Create Account</h2>
-
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="w-full p-3 mb-4 border rounded"
-            required
-          >
+          <select name="role" value={formData.role} onChange={handleChange} className="w-full p-3 mb-4 border rounded">
             <option value="Donor">Donor</option>
             <option value="NGOs">NGOs</option>
             <option value="Volunteer">Volunteer</option>
           </select>
 
-          <input id ="name" name="fullName" type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
-          <input id="email" name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
-          <input id="password" name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} required />
+          <input name="fullName" type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+          <input name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+          <input name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
 
-          <button onClick={handleRegister}
-          id="register-btn" className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition">
+          <p className="text-blue-600 underline cursor-pointer mb-4" onClick={() => setShowMore(!showMore)}>
+            {showMore ? 'Read Less ▲' : 'More Details ▼'}
+          </p>
+
+          {showMore && (
+            <>
+              <input name="contactNumber" type="tel" placeholder="Contact Number" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+              <div className="flex gap-2 items-center mb-4">
+                <button type="button" onClick={fetchLocation} className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">📍 Auto-Fetch Location</button>
+                <input name="location" value={formData.location} placeholder="Location (auto/manual)" className="flex-1 p-3 border rounded" onChange={handleChange} />
+              </div>
+              <input name="address" placeholder="Full Address (optional)" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+
+              {formData.role === 'Volunteer' && (
+                <>
+                  <div className="flex items-center mb-4">
+                    <label className="mr-2">Vehicle Available?</label>
+                    <select name="vehicleAvailable" value={formData.vehicleAvailable} onChange={handleChange} className="p-2 border rounded">
+                      <option value="">--Select--</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 mb-2">Available Time Slot:</label>
+                    <div className="flex gap-2">
+                      <TimePicker
+                        onChange={(val) => setAvailableTime(prev => ({ ...prev, start: val }))}
+                        value={availableTime.start}
+                        className="w-1/2"
+                        disableClock
+                      />
+                      <TimePicker
+                        onChange={(val) => setAvailableTime(prev => ({ ...prev, end: val }))}
+                        value={availableTime.end}
+                        className="w-1/2"
+                        disableClock
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {formData.role === 'NGOs' && (
+                <>
+                  <input name="ngoRegNumber" placeholder="NGO Registration Number" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+                  <input name="ngoType" placeholder="NGO Type (Orphanage, Shelter...)" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+                  <input name="dailyFoodNeed" placeholder="Approx Daily Food Requirement" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
+                </>
+              )}
+            </>
+          )}
+
+          <button onClick={handleRegister} className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition">
             Register
           </button>
 
           <div className="my-4 text-center text-gray-500">or</div>
-
           <div className="flex justify-center mb-4">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-            />
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
           </div>
-
           <p className="mt-4 text-sm text-center">
             Already have an account? <Link to="/login" className="text-green-700 font-semibold">Login</Link>
           </p>
