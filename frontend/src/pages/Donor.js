@@ -32,7 +32,6 @@ const Donor = () => {
   const routeLocation = useLocation();
   const donorId = localStorage.getItem('userId');
   const [showWelcome, setShowWelcome] = useState(false);
-
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -41,12 +40,10 @@ const Donor = () => {
       navigate('/');
       return;
     }
-
     if (routeLocation.state?.welcome) {
       setShowWelcome(true);
       setTimeout(() => setShowWelcome(false), 3000);
     }
-
     getCurrentLocation();
     fetchDonations();
     fetchPreviousLocations();
@@ -57,7 +54,7 @@ const Donor = () => {
       const res = await fetch(`${BACKEND_URL}/api/donations/donor/${donorId}`);
       const data = await res.json();
       setDonations(Array.isArray(data) ? data : []);
-    } catch (err) {
+    } catch {
       toast.error("❌ Failed to load your donations.");
     }
   };
@@ -83,7 +80,7 @@ const Donor = () => {
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
           setFormData(prev => ({ ...prev, location: address }));
-        } catch (err) {
+        } catch {
           toast.error("❌ Failed to auto-fill location.");
         }
       }, () => toast.error("❌ Unable to access your location."));
@@ -106,21 +103,25 @@ const Donor = () => {
       const res = await fetch(`${BACKEND_URL}/api/donations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, donor: donorId })
+        body: JSON.stringify({
+          ...formData,
+          donor: donorId,
+          preparedAt: formData.foodPreparedDate,
+          availableFrom: formData.donationAvailableDate,
+          isRefrigerated: formData.isRefrigerated === 'Yes'
+        })
       });
       const data = await res.json();
       if (data._id) {
         toast.success('✅ Donation created!');
-        setFormData({
-          foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
+        setFormData({ foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
           pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
-          storageInstructions: '', specialNotes: '', isRefrigerated: 'No'
-        });
+          storageInstructions: '', specialNotes: '', isRefrigerated: 'No' });
         fetchDonations();
         fetchPreviousLocations();
       } else toast.error('❌ Failed to create donation');
-    } catch (error) {
+    } catch {
       toast.error('❌ Error during donation creation');
     }
   };
@@ -134,18 +135,15 @@ const Donor = () => {
           </div>
         )}
 
-        <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">
-          ← Back to Home
-        </button>
-
+        <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">← Back to Home</button>
         <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, Donor!</h1>
         <p className="text-gray-700 mb-10">Use the form below to donate food and track your contributions.</p>
 
+        {/* Donation Form */}
         <div className="bg-white p-6 rounded-xl shadow-md mb-12">
           <h2 className="text-2xl font-semibold text-green-700 mb-4">Create a Donation</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input name="foodItem" value={formData.foodItem} onChange={handleChange} placeholder="Food Item" className="p-3 border rounded" required />
-
             <select name="foodType" value={formData.foodType} onChange={handleChange} className="p-3 border rounded" required>
               <option value="" disabled>Select Food Type</option>
               <option value="Veg">Veg</option>
@@ -156,7 +154,6 @@ const Donor = () => {
               <option value="Raw">Raw</option>
               <option value="Other">Other</option>
             </select>
-
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity (e.g., 10kg)" className="p-3 border rounded" required />
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
 
@@ -167,73 +164,43 @@ const Donor = () => {
               </datalist>
             </div>
 
-{/* Food Preparation Date */}
-<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-  <label className="text-center font-medium">When was the food prepared?</label>
-  <input
-    type="datetime-local"
-    name="foodPreparedDate"
-    value={formData.foodPreparedDate}
-    onChange={handleChange}
-    className="p-3 border rounded w-full text-black"
-    required
-  />
-</div>
+            {/* Date and Time Fields with Labels */}
+            {[
+              { label: 'When was the food prepared?', name: 'foodPreparedDate' },
+              { label: 'When will it be available for donation?', name: 'donationAvailableDate' },
+              { label: 'When does the food expire?', name: 'expiryDate' }
+            ].map(({ label, name }) => (
+              <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
+                <label className="text-center font-medium">{label}</label>
+                <input
+                  type="datetime-local"
+                  name={name}
+                  value={formData[name]}
+                  onChange={handleChange}
+                  className="p-3 border rounded w-full text-black"
+                  required
+                />
+              </div>
+            ))}
 
-{/* Donation Available Date */}
-<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-  <label className="text-center font-medium">When will it be available for donation?</label>
-  <input
-    type="datetime-local"
-    name="donationAvailableDate"
-    value={formData.donationAvailableDate}
-    onChange={handleChange}
-    className="p-3 border rounded w-full text-black"
-    required
-  />
-</div>
-
-{/* Expiry Date */}
-<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-  <label className="text-center font-medium">When does the food expire?</label>
-  <input
-    type="datetime-local"
-    name="expiryDate"
-    value={formData.expiryDate}
-    onChange={handleChange}
-    className="p-3 border rounded w-full text-black"
-    required
-  />
-</div>
-
-{/* Pickup Start Time */}
-<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-  <label className="text-center font-medium">Pickup window starts at</label>
-  <input
-    type="time"
-    name="pickupStartTime"
-    value={formData.pickupStartTime}
-    onChange={handleChange}
-    className="p-3 border rounded w-full text-black"
-  />
-</div>
-
-{/* Pickup End Time */}
-<div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-  <label className="text-center font-medium">Pickup window ends at</label>
-  <input
-    type="time"
-    name="pickupEndTime"
-    value={formData.pickupEndTime}
-    onChange={handleChange}
-    className="p-3 border rounded w-full text-black"
-  />
-</div>
-
+            {[
+              { label: 'Pickup window starts at', name: 'pickupStartTime' },
+              { label: 'Pickup window ends at', name: 'pickupEndTime' }
+            ].map(({ label, name }) => (
+              <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
+                <label className="text-center font-medium">{label}</label>
+                <input
+                  type="time"
+                  name={name}
+                  value={formData[name]}
+                  onChange={handleChange}
+                  className="p-3 border rounded w-full text-black"
+                />
+              </div>
+            ))}
 
             <input name="servings" value={formData.servings} onChange={handleChange} placeholder="Servings (e.g., 20 people)" className="p-3 border rounded" />
             <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Contact Number" className="p-3 border rounded" />
-
             <textarea name="storageInstructions" value={formData.storageInstructions} onChange={handleChange} placeholder="Storage Instructions" rows="3" className="p-3 border rounded col-span-1 md:col-span-2" />
             <textarea name="specialNotes" value={formData.specialNotes} onChange={handleChange} placeholder="Allergens / Special Notes" rows="2" className="p-3 border rounded col-span-1 md:col-span-2" />
 
@@ -274,7 +241,7 @@ const Donor = () => {
                 {donation.contactNumber && <p className="text-gray-700 flex items-center gap-2"><FaPhone /> Contact: {donation.contactNumber}</p>}
                 {donation.storageInstructions && <p className="text-gray-600 mt-2 flex items-center gap-2"><FaInfoCircle /> {donation.storageInstructions}</p>}
                 {donation.specialNotes && <p className="text-gray-600">Notes: {donation.specialNotes}</p>}
-                <p className="text-gray-600">Refrigerated: {donation.isRefrigerated}</p>
+                <p className="text-gray-600">Refrigerated: {donation.isRefrigerated ? 'Yes' : 'No'}</p>
                 <p className="text-gray-600 mt-2"><strong>Status:</strong> {donation.status}</p>
               </div>
             ))}

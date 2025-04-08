@@ -34,8 +34,8 @@ const AllDonationsPage = () => {
       if (data._id) {
         toast.success('✅ Donation accepted!');
         setDonations(prev => prev.map(d =>
-          d._id === donationId ? { ...d, status: 'In Transit', volunteer: volunteerId } : d
-        ));
+          d._id === donationId ? { ...d, status: 'Picked', volunteer: volunteerId } : d
+        ));        
       } else {
         toast.error(data.error || '❌ Could not accept donation');
       }

@@ -34,6 +34,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/donations', require('./routes/donationRoutes'));
 app.use('/api/requests', require('./routes/requestRoutes'));
 app.use('/api/volunteers', require('./routes/volunteerRoutes'));
+app.use('/api/feedback', require('./routes/feedbackRoutes'));
 
 // ✅ Serve static frontend in production (optional)
 if (process.env.NODE_ENV === 'production') {

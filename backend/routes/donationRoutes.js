@@ -1,7 +1,14 @@
 const express = require('express');
 const Donation = require('../models/Donation');
+const Feedback = require('../models/Feedback');
 
 const router = express.Router();
+
+const STATUS = {
+  AVAILABLE: 'Available',   // ← capital A
+  PICKED: 'Picked',         // ← lowercase
+  DELIVERED: 'Delivered'    // ← lowercase ✅
+};
 
 // ============================
 // 🥗 Create a New Donation
@@ -17,17 +24,19 @@ router.post('/', async (req, res) => {
       quantity,
       packaging,
       location,
+      foodPreparedDate,
+      donationAvailableDate,
       expiryDate,
+      pickupStartTime,
+      pickupEndTime,
+      servings,
       contactNumber,
       storageInstructions,
-      pickupTimeStart,
-      pickupTimeEnd,
-      servings,
       specialNotes,
       isRefrigerated
     } = req.body;
 
-    if (!donor || !foodItem || !quantity || !location || !expiryDate) {
+    if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
@@ -38,25 +47,28 @@ router.post('/', async (req, res) => {
       quantity,
       packaging,
       location,
+      preparedAt: foodPreparedDate,
+      availableFrom: donationAvailableDate,
       expiryDate,
+      pickupStartTime,
+      pickupEndTime,
+      servings,
       contactNumber,
       storageInstructions,
-      pickupTimeStart,
-      pickupTimeEnd,
-      servings,
       specialNotes,
-      isRefrigerated
+      isRefrigerated: isRefrigerated === 'Yes'
     });
 
+    console.log('✅ Donation successfully created:', donation._id);
     res.status(201).json(donation);
   } catch (err) {
     console.error('❌ Error creating donation:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
 // ============================
-// 📥 Get All Donations (optionally filter by status)
+// 📥 Get All Donations (optional filter by status)
 // ============================
 router.get('/', async (req, res) => {
   try {
@@ -65,7 +77,6 @@ router.get('/', async (req, res) => {
     const donations = await Donation.find(query).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
-    console.error('❌ Error fetching all donations:', err);
     res.status(500).json({ error: 'Server error while fetching donations' });
   }
 });
@@ -76,14 +87,9 @@ router.get('/', async (req, res) => {
 router.get('/donor/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
-    if (!donorId) {
-      return res.status(400).json({ error: 'Donor ID required' });
-    }
-
     const donations = await Donation.find({ donor: donorId }).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
-    console.error('❌ Error fetching donor-specific donations:', err);
     res.status(500).json({ error: 'Server error while fetching donor donations' });
   }
 });
@@ -94,16 +100,10 @@ router.get('/donor/:donorId', async (req, res) => {
 router.get('/locations/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
-    if (!donorId) {
-      return res.status(400).json({ error: 'Donor ID required' });
-    }
-
     const donations = await Donation.find({ donor: donorId }).select('location').sort({ createdAt: -1 });
     const uniqueLocations = [...new Set(donations.map(d => d.location?.trim()).filter(Boolean))];
-
     res.status(200).json(uniqueLocations);
   } catch (err) {
-    console.error('❌ Error fetching donor locations:', err);
     res.status(500).json({ error: 'Server error while fetching donor locations' });
   }
 });
@@ -114,28 +114,69 @@ router.get('/locations/:donorId', async (req, res) => {
 router.post('/nearby', async (req, res) => {
   try {
     const { userId, location, filters } = req.body;
-    console.log('📍 Nearby route hit with:', req.body);
+    const query = { status: STATUS.AVAILABLE };
 
-    const query = { status: 'Available' };
-
-    if (filters?.foodType) {
-      query.foodType = filters.foodType;
-    }
-
-    if (filters?.quantity) {
-      // Optional: match only if quantity is at least the entered number
-      query.quantity = { $regex: filters.quantity, $options: 'i' };
-    }
-
-    if (filters?.urgency) {
-      // You can define urgency field in the future, and match here
-    }
+    if (filters?.foodType) query.foodType = filters.foodType;
+    if (filters?.quantity) query.quantity = { $regex: filters.quantity, $options: 'i' };
 
     const donations = await Donation.find(query).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
-    console.error('❌ Nearby donation fetch error:', err);
     res.status(500).json({ error: 'Error fetching nearby donations' });
+  }
+});
+
+// ============================
+// ✅ Mark Donation as Delivered + Save Feedback
+// ============================
+router.patch('/complete/:id', async (req, res) => {
+  const donationId = req.params.id;
+  const { feedback, volunteer } = req.body;
+
+  if (!donationId || !feedback || typeof feedback.rating !== 'number') {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+
+  try {
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ error: 'Donation not found' });
+
+    donation.status = STATUS.DELIVERED; // ✅ use constant
+    donation.deliveredAt = new Date();
+    await donation.save();
+
+    const existingFeedback = await Feedback.findOne({ donation: donationId, volunteer });
+    if (existingFeedback) {
+      return res.status(409).json({ error: 'Feedback already submitted for this donation by this volunteer.' });
+    }
+
+    await Feedback.create({
+      volunteer,
+      donation: donation._id,
+      rating: feedback.rating,
+      comment: feedback.comment || ''
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('❌ Error saving feedback:', err);
+    res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
+// ============================
+// 📊 Get All Feedbacks with Populated Info
+// ============================
+router.get('/feedbacks', async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find({})
+      .populate('donation')
+      .populate('volunteer', 'fullName email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch feedbacks' });
   }
 });
 

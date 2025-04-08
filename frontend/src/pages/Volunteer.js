@@ -104,7 +104,10 @@ const Volunteer = () => {
       const res = await fetch(`${BACKEND_URL}/api/donations/complete/${currentPickupId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback })
+        body: JSON.stringify({
+          feedback,
+          volunteer: volunteerId // ✅ send volunteer ID!
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -118,6 +121,7 @@ const Volunteer = () => {
       toast.error("❌ Error submitting feedback");
     }
   };
+  
 
   const showRouteToDonation = (donation) => {
     if (!donation.coordinates) return;
@@ -236,7 +240,8 @@ const Volunteer = () => {
               )}
               <p className="text-gray-600 mt-2"><FaCheckCircle className="inline mr-1" /> Status: {pickup.status}</p>
               {pickup.status === 'picked' && (
-                <button onClick={() => handleMarkDelivered(pickup._id)} className="mt-4 w-full bg-green-600 text-white py-2 rounded">Mark as Delivered</button>
+                <button onClick={() => handleMarkDelivered(pickup._id || pickup.donation?._id)}
+className="mt-4 w-full bg-green-600 text-white py-2 rounded">Mark as Delivered</button>
               )}
             </div>
           ))}
