@@ -5,23 +5,22 @@ const volunteerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true // one-to-one mapping
+    unique: true // one-to-one mapping with User
   },
-  availability: {
-    type: Boolean,
-    default: true
+
+  contactNumber: {
+    type: String,
+    required: true,
+    match: /^\d{10}$/, // ensures 10-digit mobile number
+    trim: true
   },
-contactNumber: {
-  type: String,
-  required: true,
-  match: /^\d{10}$/, // ensures 10-digit mobile number
-  trim: true
-},
-currentLocation: {
-  type: String,
-  trim: true,
-  required: true
-},
+
+  currentLocation: {
+    type: String,
+    trim: true,
+    required: true
+  },
+
   locationCoordinates: {
     type: {
       type: String,
@@ -30,23 +29,69 @@ currentLocation: {
     },
     coordinates: {
       type: [Number], // [longitude, latitude]
-      default: [0, 0]
+      required: true
     }
   },
+
+  vehicleAvailable: {
+    type: String,
+    enum: ['Yes', 'No'],
+    required: true
+  },
+
+  availableStartTime: {
+    type: String,
+    required: true
+  },
+
+  availableEndTime: {
+    type: String,
+    required: true
+  },
+
+  availability: {
+    type: Boolean,
+    default: true
+  },
+
+  totalPickupsCompleted: {
+    type: Number,
+    default: 0
+  },
+
+  rating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+
+  feedbacks: [
+    {
+      rating: Number,
+      comment: String,
+      date: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
+
   createdAt: {
     type: Date,
     default: Date.now
   },
+
   updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Index for geospatial filtering (e.g., nearby donations)
+// 📍 Geo-index for location-based filtering
 volunteerSchema.index({ locationCoordinates: '2dsphere' });
 
-// Auto-update updatedAt
+// 🕒 Auto-update `updatedAt`
 volunteerSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

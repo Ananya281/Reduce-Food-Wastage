@@ -1,19 +1,12 @@
-// Register.js with time range picker
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import loginImage from '../assets/savefood.jpeg';
-import TimePicker from 'react-time-picker';
-import 'react-time-picker/dist/TimePicker.css';
-import 'react-clock/dist/Clock.css';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [showMore, setShowMore] = useState(false);
-  const [availableTime, setAvailableTime] = useState({ start: '', end: '' });
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -21,9 +14,6 @@ const Register = () => {
     password: '',
     role: 'Donor',
     contactNumber: '',
-    location: '',
-    address: '',
-    vehicleAvailable: '',
     ngoRegNumber: '',
     ngoType: '',
     dailyFoodNeed: ''
@@ -45,18 +35,6 @@ const Register = () => {
     }));
   };
 
-  const fetchLocation = () => {
-    if (!navigator.geolocation) return showError("Geolocation not supported");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const loc = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
-        setFormData(prev => ({ ...prev, location: loc }));
-      },
-      () => showError("Unable to get location")
-    );
-  };
-
   const navigateToDashboard = (role) => {
     if (role === 'Donor') navigate('/donor');
     else if (role === 'NGOs') navigate('/ngo');
@@ -64,15 +42,12 @@ const Register = () => {
   };
 
   const handleRegister = async () => {
-    const { fullName, email, password, contactNumber, location, role } = formData;
+    const { fullName, email, password, contactNumber, role } = formData;
 
     if (!fullName || !email || !password || !role) return showError("Fill all basic fields");
-    if (showMore) {
-      if (!contactNumber || !location) return showError("Fill additional fields");
 
-      if (
-        role === 'Volunteer' && (!formData.vehicleAvailable || !availableTime.start || !availableTime.end)
-      ) return showError("Fill volunteer details");
+    if (role !== 'Donor') {
+      if (!contactNumber) return showError("Contact number is required");
 
       if (
         role === 'NGOs' && (!formData.ngoRegNumber || !formData.ngoType || !formData.dailyFoodNeed)
@@ -83,7 +58,7 @@ const Register = () => {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, availableStartTime: availableTime.start, availableEndTime: availableTime.end })
+        body: JSON.stringify(formData)
       });
 
       const data = await res.json();
@@ -154,48 +129,9 @@ const Register = () => {
           <input name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
           <input name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
 
-          <p className="text-blue-600 underline cursor-pointer mb-4" onClick={() => setShowMore(!showMore)}>
-            {showMore ? 'Read Less ▲' : 'More Details ▼'}
-          </p>
-
-          {showMore && (
+          {formData.role !== 'Donor' && (
             <>
               <input name="contactNumber" type="tel" placeholder="Contact Number" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-              <div className="flex gap-2 items-center mb-4">
-                <button type="button" onClick={fetchLocation} className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">📍 Auto-Fetch Location</button>
-                <input name="location" value={formData.location} placeholder="Location (auto/manual)" className="flex-1 p-3 border rounded" onChange={handleChange} />
-              </div>
-              <input name="address" placeholder="Full Address (optional)" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-
-              {formData.role === 'Volunteer' && (
-                <>
-                  <div className="flex items-center mb-4">
-                    <label className="mr-2">Vehicle Available?</label>
-                    <select name="vehicleAvailable" value={formData.vehicleAvailable} onChange={handleChange} className="p-2 border rounded">
-                      <option value="">--Select--</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 mb-2">Available Time Slot:</label>
-                    <div className="flex gap-2">
-                      <TimePicker
-                        onChange={(val) => setAvailableTime(prev => ({ ...prev, start: val }))}
-                        value={availableTime.start}
-                        className="w-1/2"
-                        disableClock
-                      />
-                      <TimePicker
-                        onChange={(val) => setAvailableTime(prev => ({ ...prev, end: val }))}
-                        value={availableTime.end}
-                        className="w-1/2"
-                        disableClock
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
 
               {formData.role === 'NGOs' && (
                 <>

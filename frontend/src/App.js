@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import Donor from './pages/Donor';
 import Volunteer from './pages/Volunteer';
 import NGO from './pages/NGO';
+import AllDonationsPage from './pages/AllDonationsPage'; // Added for volunteer donation view
 
 // Service detail pages
 import FoodPickup from './pages/services/FoodPickup';
@@ -28,6 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/donor" element={<Donor />} />
         <Route path="/volunteer" element={<Volunteer />} />
+        <Route path="/volunteer/all-donations" element={<AllDonationsPage />} />
         <Route path="/ngo" element={<NGO />} />
 
         {/* Services Detail Routes */}

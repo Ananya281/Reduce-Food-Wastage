@@ -7,7 +7,7 @@ const router = express.Router();
 // 🥗 Create a New Donation
 // ============================
 router.post('/', async (req, res) => {
-  console.log("📦 Incoming donation payload:", req.body);  // Add this log
+  console.log("📦 Incoming donation payload:", req.body);
 
   try {
     const {
@@ -19,7 +19,12 @@ router.post('/', async (req, res) => {
       location,
       expiryDate,
       contactNumber,
-      storageInstructions
+      storageInstructions,
+      pickupTimeStart,
+      pickupTimeEnd,
+      servings,
+      specialNotes,
+      isRefrigerated
     } = req.body;
 
     if (!donor || !foodItem || !quantity || !location || !expiryDate) {
@@ -35,7 +40,12 @@ router.post('/', async (req, res) => {
       location,
       expiryDate,
       contactNumber,
-      storageInstructions
+      storageInstructions,
+      pickupTimeStart,
+      pickupTimeEnd,
+      servings,
+      specialNotes,
+      isRefrigerated
     });
 
     res.status(201).json(donation);
@@ -46,11 +56,13 @@ router.post('/', async (req, res) => {
 });
 
 // ============================
-// 📥 Get All Donations
+// 📥 Get All Donations (optionally filter by status)
 // ============================
 router.get('/', async (req, res) => {
   try {
-    const donations = await Donation.find().populate('donor');
+    const { status } = req.query;
+    const query = status ? { status } : {};
+    const donations = await Donation.find(query).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
     console.error('❌ Error fetching all donations:', err);
@@ -93,6 +105,37 @@ router.get('/locations/:donorId', async (req, res) => {
   } catch (err) {
     console.error('❌ Error fetching donor locations:', err);
     res.status(500).json({ error: 'Server error while fetching donor locations' });
+  }
+});
+
+// ============================
+// 📍 Get Nearby Donations for Volunteer
+// ============================
+router.post('/nearby', async (req, res) => {
+  try {
+    const { userId, location, filters } = req.body;
+    console.log('📍 Nearby route hit with:', req.body);
+
+    const query = { status: 'Available' };
+
+    if (filters?.foodType) {
+      query.foodType = filters.foodType;
+    }
+
+    if (filters?.quantity) {
+      // Optional: match only if quantity is at least the entered number
+      query.quantity = { $regex: filters.quantity, $options: 'i' };
+    }
+
+    if (filters?.urgency) {
+      // You can define urgency field in the future, and match here
+    }
+
+    const donations = await Donation.find(query).populate('donor');
+    res.status(200).json(donations);
+  } catch (err) {
+    console.error('❌ Nearby donation fetch error:', err);
+    res.status(500).json({ error: 'Error fetching nearby donations' });
   }
 });
 

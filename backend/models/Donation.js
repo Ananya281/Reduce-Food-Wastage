@@ -1,4 +1,3 @@
-// models/Donation.js
 const mongoose = require('mongoose');
 
 const donationSchema = new mongoose.Schema({
@@ -30,9 +29,29 @@ const donationSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  preparedAt: {
+    type: Date,
+    required: true
+  },
+  availableFrom: {
+    type: Date,
+    required: true
+  },
   expiryDate: {
     type: Date,
     required: true
+  },
+  pickupTimeStart: {
+    type: String,
+    trim: true
+  },
+  pickupTimeEnd: {
+    type: String,
+    trim: true
+  },
+  servings: {
+    type: String,
+    trim: true
   },
   contactNumber: {
     type: String,
@@ -43,15 +62,29 @@ const donationSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  specialNotes: {
+    type: String,
+    trim: true
+  },
+  isRefrigerated: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
-    enum: ['Available', 'In Transit', 'Delivered'],
+    enum: ['Available', 'picked', 'delivered'],
     default: 'Available'
   },
   volunteer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+  pickedAt: {
+    type: Date
+  },
+  deliveredAt: {
+    type: Date
   },
   createdAt: {
     type: Date,

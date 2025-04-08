@@ -46,42 +46,32 @@ const userSchema = new mongoose.Schema({
   contactNumber: {
     type: String,
     trim: true,
+    required: function () {
+      return this.role === 'Volunteer' || this.role === 'NGOs';
+    },
   },
 
-  location: {
-    type: String,
-    trim: true,
-  },
-
-  address: {
-    type: String,
-    trim: true,
-  },
-
-  // Volunteer specific
-  vehicleAvailable: {
-    type: String,
-    enum: ['Yes', 'No'],
-  },
-  availableStartTime: {
-    type: String,
-  },
-  availableEndTime: {
-    type: String,
-  },
-
-  // NGO specific
+  // Fields specific to NGOs only
   ngoRegNumber: {
     type: String,
     trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
   },
   ngoType: {
     type: String,
     trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
   },
   dailyFoodNeed: {
     type: String,
     trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
   },
 
   createdAt: {

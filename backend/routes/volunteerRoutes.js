@@ -66,10 +66,10 @@ router.patch('/accept/:id', async (req, res) => {
       return res.status(409).json({ error: 'Already accepted this pickup' });
     }
 
-    // Update donation status
+    // Update donation status and assign volunteer
     const updatedDonation = await Donation.findByIdAndUpdate(
       donationId,
-      { status: 'In Transit', volunteer },
+      { status: 'picked', volunteer },
       { new: true }
     );
 
@@ -84,7 +84,7 @@ router.patch('/accept/:id', async (req, res) => {
       acceptedAt: new Date()
     });
 
-    res.status(200).json(updatedDonation);
+    res.status(200).json({ success: true, message: 'Donation accepted', donation: updatedDonation });
   } catch (err) {
     console.error('❌ Accept donation error:', err.message);
     res.status(500).json({ error: 'Failed to accept donation' });
@@ -104,7 +104,11 @@ router.get('/:id/pickups', async (req, res) => {
   try {
     const pickups = await Pickup.find({ volunteer: volunteerId }).populate({
       path: 'donation',
-      select: 'foodItem quantity location expiryDate status'
+      populate: {
+        path: 'donor',
+        select: 'fullName contactNumber'
+      },
+      select: 'foodItem quantity location expiryDate status donor'
     });
 
     const formatted = pickups
