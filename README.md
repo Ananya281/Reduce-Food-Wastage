@@ -21,8 +21,16 @@ By streamlining the process, this initiative aims to **minimize food wastage** a
 - ✅ Google Sign-In integration for quick access
 - ✅ Real-time donation and request management
 - ✅ Personalized dashboards for every user type
+- ✅ Volunteer recommendation based on:
+  - Distance from donation location
+  - Food type preference
+  - Time slot availability
+  - Urgency level
+  - Vehicle availability
 - ✅ Clean, mobile-friendly UI with **Tailwind CSS**
 - ✅ Dynamic routing and data fetching
+
+> **Note:** Current recommendation system is **filter-based and rule-driven**, not ML-based, for transparency and efficiency. Future versions can incorporate ML for smart ranking.
 
 ---
 
