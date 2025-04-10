@@ -5,9 +5,9 @@ const Feedback = require('../models/Feedback');
 const router = express.Router();
 
 const STATUS = {
-  AVAILABLE: 'Available',   // ← capital A
-  PICKED: 'Picked',         // ← lowercase
-  DELIVERED: 'Delivered'    // ← lowercase ✅
+  AVAILABLE: 'Available',
+  PICKED: 'Picked',
+  DELIVERED: 'Delivered'
 };
 
 // ============================
@@ -33,7 +33,8 @@ router.post('/', async (req, res) => {
       contactNumber,
       storageInstructions,
       specialNotes,
-      isRefrigerated
+      isRefrigerated,
+      coordinates
     } = req.body;
 
     if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
@@ -56,7 +57,8 @@ router.post('/', async (req, res) => {
       contactNumber,
       storageInstructions,
       specialNotes,
-      isRefrigerated: isRefrigerated === 'Yes'
+      isRefrigerated: isRefrigerated === 'Yes',
+      coordinates
     });
 
     console.log('✅ Donation successfully created:', donation._id);
@@ -116,12 +118,51 @@ router.post('/nearby', async (req, res) => {
     const { userId, location, filters } = req.body;
     const query = { status: STATUS.AVAILABLE };
 
+    // Basic filters
     if (filters?.foodType) query.foodType = filters.foodType;
-    if (filters?.quantity) query.quantity = { $regex: filters.quantity, $options: 'i' };
+    if (filters?.urgency) query.urgency = filters.urgency;
+    if (filters?.vehicleAvailable !== '') {
+      query.vehicleAvailable = filters.vehicleAvailable === 'true';
+    }    
+    if (filters?.timeSlot) {
+      query.pickupStartTime = { $regex: filters.timeSlot, $options: 'i' };
+    }
 
-    const donations = await Donation.find(query).populate('donor');
+    // Fetch donations
+    let donations = await Donation.find(query).populate('donor');
+
+    const toRad = (val) => (val * Math.PI) / 180;
+    const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    // Attach distances and filter
+    if (location?.length === 2) {
+      donations = donations.map(d => {
+        if (d.coordinates?.lat && d.coordinates?.lng) {
+          const dist = getDistanceInKm(location[0], location[1], d.coordinates.lat, d.coordinates.lng);
+          return { ...d._doc, distance: dist.toFixed(2), coordinates: d.coordinates, _id: d._id };
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (filters?.maxDistance) {
+        donations = donations.filter(d => parseFloat(d.distance) <= parseFloat(filters.maxDistance));
+      }
+
+      donations.sort((a, b) => a.distance - b.distance);
+    }
+
     res.status(200).json(donations);
   } catch (err) {
+    console.error('❌ Error in nearby donations:', err.message);
     res.status(500).json({ error: 'Error fetching nearby donations' });
   }
 });
@@ -141,7 +182,7 @@ router.patch('/complete/:id', async (req, res) => {
     const donation = await Donation.findById(donationId);
     if (!donation) return res.status(404).json({ error: 'Donation not found' });
 
-    donation.status = STATUS.DELIVERED; // ✅ use constant
+    donation.status = STATUS.DELIVERED;
     donation.deliveredAt = new Date();
     await donation.save();
 

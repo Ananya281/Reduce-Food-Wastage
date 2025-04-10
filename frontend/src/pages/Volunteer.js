@@ -1,9 +1,11 @@
-// Volunteer.js
-// Updated: Includes display of additional donation details for pickup cards
-
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FaHandHoldingHeart, FaMapMarkerAlt, FaCalendarAlt, FaTruck, FaCheckCircle, FaRoute, FaStar, FaBoxes, FaClock, FaSnowflake, FaStickyNote } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import {
+  FaHandHoldingHeart, FaMapMarkerAlt, FaCalendarAlt, FaTruck, FaCheckCircle,
+  FaStar, FaBoxes, FaClock, FaSnowflake, FaStickyNote
+} from 'react-icons/fa';
+import { MdLocationOn } from 'react-icons/md';
+import ReactDOMServer from 'react-dom/server';
 import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -12,21 +14,41 @@ import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'react-toastify/dist/ReactToastify.css';
 
+const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (val) => (val * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const Volunteer = () => {
   const [volunteerTasks, setVolunteerTasks] = useState([]);
   const [myPickups, setMyPickups] = useState([]);
   const [availability, setAvailability] = useState(true);
-  const [volunteerLocation, setVolunteerLocation] = useState([28.6139, 77.2090]);
-  const [filters, setFilters] = useState({ foodType: '', quantity: '', urgency: '' });
-  const [showModal, setShowModal] = useState(false);
-  const [currentPickupId, setCurrentPickupId] = useState(null);
-  const [feedback, setFeedback] = useState({ rating: 0, comment: '' });
+  const [volunteerLocation, setVolunteerLocation] = useState([30.3498687, 76.3731228]);
+  const [locationName, setLocationName] = useState('');
+  const [filters, setFilters] = useState({
+    foodType: '', urgency: '', timeSlot: '', vehicleAvailable: '', maxDistance: '',
+  });
 
   const mapRef = useRef();
   const routingRef = useRef();
   const navigate = useNavigate();
   const volunteerId = localStorage.getItem('userId');
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+  const donationIcon = new L.divIcon({
+    html: ReactDOMServer.renderToString(<MdLocationOn size={32} color="#e53935" />),
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -30],
+  });
 
   const fetchAvailableDonations = async () => {
     try {
@@ -35,9 +57,32 @@ const Volunteer = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: volunteerId, location: volunteerLocation, filters })
       });
-      const data = await res.json();
-      setVolunteerTasks(Array.isArray(data) ? data : []);
+      let data = await res.json();
+      if (Array.isArray(data)) {
+        data = data.map(donation => {
+          if (donation.coordinates && donation.coordinates.lat && donation.coordinates.lng) {
+            const dist = getDistanceInKm(
+              volunteerLocation[0],
+              volunteerLocation[1],
+              donation.coordinates.lat,
+              donation.coordinates.lng
+            );
+            return { ...donation, distance: dist.toFixed(2) };
+          }
+          return donation;
+        });
+        if (filters.maxDistance) {
+          data = data.filter(d => parseFloat(d.distance) <= parseFloat(filters.maxDistance));
+        }
+        data.sort((a, b) => a.distance - b.distance);
+        setVolunteerTasks(data);
+        if (data.length === 0) toast.info("ℹ️ No donations found matching filters.");
+      } else {
+        toast.info("ℹ️ No donations found.");
+        setVolunteerTasks([]);
+      }
     } catch (error) {
+      console.error("❌ Donation fetch failed:", error);
       toast.error("❌ Failed to fetch donations");
     }
   };
@@ -64,9 +109,7 @@ const Volunteer = () => {
 
   const toggleAvailability = async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/volunteers/${volunteerId}/toggleAvailability`, {
-        method: 'PATCH'
-      });
+      const res = await fetch(`${BACKEND_URL}/api/volunteers/${volunteerId}/toggleAvailability`, { method: 'PATCH' });
       const data = await res.json();
       setAvailability(data.availability);
     } catch (error) {
@@ -75,6 +118,14 @@ const Volunteer = () => {
   };
 
   const handleAccept = async (donationId) => {
+    if (!volunteerId) {
+      return toast.error("❌ You must be logged in to accept.");
+    }
+  
+    const target = volunteerTasks.find(d => d._id === donationId);
+    if (target && target.status !== 'Available') {
+      return toast.warning("⚠️ This donation is no longer available.");
+    }
     try {
       const res = await fetch(`${BACKEND_URL}/api/volunteers/accept/${donationId}`, {
         method: 'PATCH',
@@ -90,46 +141,43 @@ const Volunteer = () => {
         toast.error(data.error || "❌ Failed to accept pickup");
       }
     } catch (error) {
+      console.error("❌ Error accepting pickup:", error);
       toast.error("❌ Error accepting pickup");
     }
   };
-
-  const handleMarkDelivered = (donationId) => {
-    setCurrentPickupId(donationId);
-    setShowModal(true);
-  };
-
-  const submitFeedback = async () => {
+  const handleMarkDelivered = async (donationId) => {
+    if (!donationId) {
+      toast.error("❌ Invalid donation ID");
+      return;
+    }
+  
     try {
-      const res = await fetch(`${BACKEND_URL}/api/donations/complete/${currentPickupId}`, {
+      const res = await fetch(`${BACKEND_URL}/api/volunteers/deliver/${donationId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          feedback,
-          volunteer: volunteerId // ✅ send volunteer ID!
-        })
+        headers: { 'Content-Type': 'application/json' }
       });
+  
       const data = await res.json();
-      if (data.success) {
-        toast.success("✅ Marked as delivered!");
-        setShowModal(false);
+      if (res.ok && data.success) {
+        toast.success("✅ Donation marked as delivered!");
         fetchVolunteerPickups();
       } else {
-        toast.error("❌ Failed to mark as delivered");
+        toast.error(data.error || "❌ Could not update status");
       }
-    } catch (error) {
-      toast.error("❌ Error submitting feedback");
+    } catch (err) {
+      toast.error("❌ Network or server error");
+      console.error(err);
     }
   };
+  
+  
   
 
   const showRouteToDonation = (donation) => {
     if (!donation.coordinates) return;
     const map = mapRef.current;
     if (!map) return;
-
     if (routingRef.current) routingRef.current.remove();
-
     routingRef.current = L.Routing.control({
       waypoints: [
         L.latLng(volunteerLocation[0], volunteerLocation[1]),
@@ -157,8 +205,14 @@ const Volunteer = () => {
       fetchAvailability();
       fetchVolunteerPickups();
       navigator.geolocation.getCurrentPosition(
-        (pos) => setVolunteerLocation([pos.coords.latitude, pos.coords.longitude]),
-        () => toast.warn("⚠️ Using default location")
+        (pos) => {
+          setVolunteerLocation([pos.coords.latitude, pos.coords.longitude]);
+          setLocationName(`Lat: ${pos.coords.latitude.toFixed(3)}, Lng: ${pos.coords.longitude.toFixed(3)}`);
+        },
+        () => {
+          toast.warn("⚠️ Using default location (Patiala)");
+          setLocationName("Default: Patiala");
+        }
       );
     }
   }, [volunteerId]);
@@ -179,20 +233,41 @@ const Volunteer = () => {
           </button>
         </div>
 
-        <div className="mb-6">
-          <Link to="/volunteer/all-donations" className="text-blue-600 underline text-sm">
-            👉 View all available donations as cards
-          </Link>
-        </div>
+        <p className="text-sm text-gray-600 mb-2">📍 Your Location: {locationName}</p>
 
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <input name="foodType" value={filters.foodType} onChange={handleFilterChange} placeholder="Food Type" className="p-2 border rounded" />
-            <input name="quantity" value={filters.quantity} onChange={handleFilterChange} placeholder="Min Qty" type="number" className="p-2 border rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
+            <select name="foodType" value={filters.foodType} onChange={handleFilterChange} className="p-2 border rounded">
+              <option value="">Food Type</option>
+              <option value="Veg">Veg</option>
+              <option value="Non-Veg">Non-Veg</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Drinks">Drinks</option>
+              <option value="Packaged">Packaged</option>
+            </select>
             <select name="urgency" value={filters.urgency} onChange={handleFilterChange} className="p-2 border rounded">
               <option value="">Urgency</option>
               <option value="high">High</option>
               <option value="low">Low</option>
+            </select>
+            <select name="timeSlot" value={filters.timeSlot} onChange={handleFilterChange} className="p-2 border rounded">
+              <option value="">Time Slot</option>
+              <option value="Morning">Morning (6 AM - 12 PM)</option>
+              <option value="Afternoon">Afternoon (12 PM - 4 PM)</option>
+              <option value="Evening">Evening (4 PM - 8 PM)</option>
+              <option value="Night">Night (8 PM - 12 AM)</option>
+              <option value="Late Night">Late Night (12 AM - 6 AM)</option>
+            </select>
+            <select name="vehicleAvailable" value={filters.vehicleAvailable} onChange={handleFilterChange} className="p-2 border rounded">
+              <option value="">Vehicle</option>
+              <option value="true">Available</option>
+              <option value="false">Not Available</option>
+            </select>
+            <select name="maxDistance" value={filters.maxDistance} onChange={handleFilterChange} className="p-2 border rounded">
+              <option value="">Distance</option>
+              <option value="2">≤ 2 km</option>
+              <option value="5">≤ 5 km</option>
+              <option value="10">≤ 10 km</option>
             </select>
             <button onClick={fetchAvailableDonations} className="bg-blue-600 text-white rounded px-4 py-2">Apply</button>
           </div>
@@ -201,11 +276,12 @@ const Volunteer = () => {
         <MapContainer center={volunteerLocation} zoom={13} className="h-96 rounded-xl mb-10" whenCreated={(map) => mapRef.current = map}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           {volunteerTasks.map((donation, idx) => (
-            donation.coordinates && (
-              <Marker key={idx} position={[donation.coordinates.lat, donation.coordinates.lng]}>
+            donation.coordinates?.lat && donation.coordinates?.lng && (
+              <Marker key={idx} position={[donation.coordinates.lat, donation.coordinates.lng]} icon={donationIcon}>
                 <Popup>
                   <strong>{donation.foodItem}</strong><br />
                   Qty: {donation.quantity}<br />
+                  📍 {donation.distance} km away<br />
                   <button onClick={() => { showRouteToDonation(donation); handleAccept(donation._id); }} className="text-sm bg-blue-600 text-white px-2 py-1 rounded mt-2">
                     Accept & Navigate
                   </button>
@@ -214,62 +290,48 @@ const Volunteer = () => {
             )
           ))}
         </MapContainer>
+        <div className="text-right mt-2">
+  <button
+    onClick={() => navigate('/volunteer/alldonations')}
+    className="text-blue-600 hover:underline text-sm"
+  >
+    📋 View All Donations
+  </button>
+</div>
 
-        <h2 className="text-2xl font-bold text-green-700 mb-4">My Pickups</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {myPickups.map((pickup) => (
-            <div key={pickup._id} className="bg-white p-5 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2"><FaHandHoldingHeart /> {pickup.foodItem}</h3>
-              <p className="text-gray-700"><FaTruck className="inline mr-1" /> Qty: {pickup.quantity}</p>
-              <p className="text-gray-700"><FaBoxes className="inline mr-1" /> Type: {pickup.foodType}</p>
-              <p className="text-gray-700"><FaMapMarkerAlt className="inline mr-1" /> {pickup.location}</p>
-              <p className="text-gray-700"><FaCalendarAlt className="inline mr-1" /> Prepared: {pickup.foodPreparedAt ? new Date(pickup.foodPreparedAt).toLocaleString() : 'N/A'}</p>
-              <p className="text-gray-700"><FaCalendarAlt className="inline mr-1" /> Available: {pickup.foodAvailableFrom ? new Date(pickup.foodAvailableFrom).toLocaleString() : 'N/A'}</p>
-              <p className="text-gray-700"><FaCalendarAlt className="inline mr-1" /> Expiry: {pickup.expiryDate ? new Date(pickup.expiryDate).toLocaleString() : 'N/A'}</p>
-              {pickup.pickupTimeStart && pickup.pickupTimeEnd && (
-                <p className="text-gray-700"><FaClock className="inline mr-1" /> Pickup Time: {pickup.pickupTimeStart} - {pickup.pickupTimeEnd}</p>
-              )}
-              {pickup.servings && <p className="text-gray-700">Servings: {pickup.servings}</p>}
-              {pickup.isRefrigerated && <p className="text-gray-700"><FaSnowflake className="inline mr-1" /> Refrigerated</p>}
-              {pickup.specialNotes && <p className="text-gray-700"><FaStickyNote className="inline mr-1" /> Notes: {pickup.specialNotes}</p>}
-              {pickup.donor && (
-                <div className="mt-2 text-sm text-gray-600">
-                  <p><strong>Donor:</strong> {pickup.donor.fullName}</p>
-                  <p><strong>Contact:</strong> {pickup.donor.contactNumber}</p>
+        {/* My Pickups Section */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-green-700">My Pickups</h2>
+          {myPickups.length === 0 ? (
+            <p className="text-gray-600">No pickups yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myPickups.map((pickup) => (
+                <div key={pickup._id} className="bg-gray-100 rounded p-4 shadow">
+                  <h3 className="text-lg font-semibold text-gray-800">{pickup.foodItem}</h3>
+                  <p className="text-sm text-gray-600">Location: {pickup.location}</p>
+                  <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
+                  <p className="text-sm text-gray-600">Pickup Time: {pickup.pickupStartTime} - {pickup.pickupEndTime}</p>
+                  {pickup.status === 'Delivered' ? (
+  <button className="mt-2 text-sm bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2 cursor-default transition duration-300 ease-in-out">
+    <FaCheckCircle className="text-white" />
+    Delivered
+  </button>
+) : (
+  <button
+onClick={() => handleMarkDelivered(pickup.donationId?.trim())}
+className="mt-2 text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 flex items-center gap-2 transition duration-300 ease-in-out"
+  >
+    <FaCheckCircle className="text-white" />
+    Mark as Delivered
+  </button>
+)}
+
                 </div>
-              )}
-              <p className="text-gray-600 mt-2"><FaCheckCircle className="inline mr-1" /> Status: {pickup.status}</p>
-              {pickup.status === 'picked' && (
-                <button onClick={() => handleMarkDelivered(pickup._id || pickup.donation?._id)}
-className="mt-4 w-full bg-green-600 text-white py-2 rounded">Mark as Delivered</button>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
-
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg text-center w-96">
-              <h3 className="text-xl font-bold mb-4">Leave Feedback</h3>
-              <div className="flex justify-center gap-2 mb-4">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <FaStar
-                    key={num}
-                    onClick={() => setFeedback({ ...feedback, rating: num })}
-                    className={`cursor-pointer ${feedback.rating >= num ? 'text-yellow-400' : 'text-gray-300'}`}
-                  />
-                ))}
-              </div>
-              <textarea
-                placeholder="Write your comment..."
-                className="w-full border p-2 mb-4 rounded"
-                rows={3}
-                onChange={(e) => setFeedback({ ...feedback, comment: e.target.value })}
-              ></textarea>
-              <button onClick={submitFeedback} className="bg-green-600 text-white px-4 py-2 rounded w-full">Submit</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

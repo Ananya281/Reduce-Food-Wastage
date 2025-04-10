@@ -13,7 +13,7 @@ const donationSchema = new mongoose.Schema({
   },
   foodType: {
     type: String,
-    enum: ['Veg', 'Non-Veg', 'Canned', 'Cooked', 'Packaged', 'Raw', 'Other'],
+    enum: ['Veg', 'Non-Veg', 'Canned', 'Cooked', 'Packaged', 'Raw', 'Snacks', 'Drinks', 'Other'],
     default: 'Veg'
   },
   quantity: {
@@ -41,11 +41,11 @@ const donationSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  pickupTimeStart: {
+  pickupStartTime: {
     type: String,
     trim: true
   },
-  pickupTimeEnd: {
+  pickupEndTime: {
     type: String,
     trim: true
   },
@@ -55,8 +55,7 @@ const donationSchema = new mongoose.Schema({
   },
   contactNumber: {
     type: String,
-    match: /^\d{10}$/,
-    required: false
+    match: /^\d{10}$/
   },
   storageInstructions: {
     type: String,
@@ -69,6 +68,10 @@ const donationSchema = new mongoose.Schema({
   isRefrigerated: {
     type: Boolean,
     default: false
+  },
+  coordinates: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true }
   },
   status: {
     type: String,

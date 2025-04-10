@@ -24,7 +24,8 @@ const Donor = () => {
     contactNumber: '',
     storageInstructions: '',
     specialNotes: '',
-    isRefrigerated: 'No'
+    isRefrigerated: 'No',
+    coordinates: { lat: null, lng: null }
   });
 
   const [locationSuggestions, setLocationSuggestions] = useState([]);
@@ -79,7 +80,11 @@ const Donor = () => {
           });
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
-          setFormData(prev => ({ ...prev, location: address }));
+          setFormData(prev => ({
+            ...prev,
+            location: address,
+            coordinates: { lat: latitude, lng: longitude } // ✅ Add coordinates here
+          }));
         } catch {
           toast.error("❌ Failed to auto-fill location.");
         }
@@ -93,9 +98,15 @@ const Donor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { foodItem, quantity, location, expiryDate } = formData;
-    if (!foodItem || !quantity || !location || !expiryDate) {
+    const { foodItem, quantity, location, expiryDate, foodPreparedDate, donationAvailableDate, coordinates } = formData;
+
+    if (!foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       toast.warn("⚠️ Please fill all required fields");
+      return;
+    }
+
+    if (!coordinates.lat || !coordinates.lng) {
+      toast.error("❌ Location coordinates missing");
       return;
     }
 
@@ -108,16 +119,20 @@ const Donor = () => {
           donor: donorId,
           preparedAt: formData.foodPreparedDate,
           availableFrom: formData.donationAvailableDate,
-          isRefrigerated: formData.isRefrigerated === 'Yes'
+          isRefrigerated: formData.isRefrigerated === 'Yes',
+          coordinates: formData.coordinates // ✅ Send coordinates here
         })
       });
       const data = await res.json();
       if (data._id) {
         toast.success('✅ Donation created!');
-        setFormData({ foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
+        setFormData({
+          foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
           pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
-          storageInstructions: '', specialNotes: '', isRefrigerated: 'No' });
+          storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
+          coordinates: { lat: null, lng: null }
+        });
         fetchDonations();
         fetchPreviousLocations();
       } else toast.error('❌ Failed to create donation');
@@ -164,40 +179,24 @@ const Donor = () => {
               </datalist>
             </div>
 
-            {/* Date and Time Fields with Labels */}
-            {[
-              { label: 'When was the food prepared?', name: 'foodPreparedDate' },
+            {[{ label: 'When was the food prepared?', name: 'foodPreparedDate' },
               { label: 'When will it be available for donation?', name: 'donationAvailableDate' },
-              { label: 'When does the food expire?', name: 'expiryDate' }
-            ].map(({ label, name }) => (
-              <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-                <label className="text-center font-medium">{label}</label>
-                <input
-                  type="datetime-local"
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  className="p-3 border rounded w-full text-black"
-                  required
-                />
-              </div>
-            ))}
+              { label: 'When does the food expire?', name: 'expiryDate' }]
+              .map(({ label, name }) => (
+                <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
+                  <label className="text-center font-medium">{label}</label>
+                  <input type="datetime-local" name={name} value={formData[name]} onChange={handleChange} className="p-3 border rounded w-full text-black" required />
+                </div>
+              ))}
 
-            {[
-              { label: 'Pickup window starts at', name: 'pickupStartTime' },
-              { label: 'Pickup window ends at', name: 'pickupEndTime' }
-            ].map(({ label, name }) => (
-              <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-                <label className="text-center font-medium">{label}</label>
-                <input
-                  type="time"
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  className="p-3 border rounded w-full text-black"
-                />
-              </div>
-            ))}
+            {[{ label: 'Pickup window starts at', name: 'pickupStartTime' },
+              { label: 'Pickup window ends at', name: 'pickupEndTime' }]
+              .map(({ label, name }) => (
+                <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
+                  <label className="text-center font-medium">{label}</label>
+                  <input type="time" name={name} value={formData[name]} onChange={handleChange} className="p-3 border rounded w-full text-black" />
+                </div>
+              ))}
 
             <input name="servings" value={formData.servings} onChange={handleChange} placeholder="Servings (e.g., 20 people)" className="p-3 border rounded" />
             <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Contact Number" className="p-3 border rounded" />

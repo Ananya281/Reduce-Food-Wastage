@@ -66,17 +66,6 @@ const volunteerSchema = new mongoose.Schema({
     default: 0
   },
 
-  feedbacks: [
-    {
-      rating: Number,
-      comment: String,
-      date: {
-        type: Date,
-        default: Date.now
-      }
-    }
-  ],
-
   createdAt: {
     type: Date,
     default: Date.now

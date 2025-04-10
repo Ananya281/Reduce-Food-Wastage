@@ -56,20 +56,24 @@ router.patch('/accept/:id', async (req, res) => {
     const donationId = req.params.id;
     const { volunteer } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(donationId) || !mongoose.Types.ObjectId.isValid(volunteer)) {
-      return res.status(400).json({ error: 'Invalid donation or volunteer ID' });
-    }
+    if (!mongoose.Types.ObjectId.isValid(donationId)) {
+      return res.status(400).json({ error: 'Invalid donation ID' });
+    }    
 
     // Prevent double acceptance
     const existingPickup = await Pickup.findOne({ volunteer, donation: donationId });
     if (existingPickup) {
       return res.status(409).json({ error: 'Already accepted this pickup' });
-    }
+    }    
 
     // Update donation status and assign volunteer
     const updatedDonation = await Donation.findByIdAndUpdate(
       donationId,
-      { status: 'picked', volunteer },
+      {
+        status: 'Picked',
+        volunteer,
+        pickedAt: new Date()
+      },
       { new: true }
     );
 
@@ -84,7 +88,11 @@ router.patch('/accept/:id', async (req, res) => {
       acceptedAt: new Date()
     });
 
-    res.status(200).json({ success: true, message: 'Donation accepted', donation: updatedDonation });
+    res.status(200).json({
+      _id: updatedDonation._id,
+      status: updatedDonation.status,
+      message: 'Donation accepted'
+    });
   } catch (err) {
     console.error('❌ Accept donation error:', err.message);
     res.status(500).json({ error: 'Failed to accept donation' });
@@ -93,6 +101,7 @@ router.patch('/accept/:id', async (req, res) => {
 
 /**
  * 📦 Get all pickups for a specific volunteer
+ * Optionally includes donor info and location
  */
 router.get('/:id/pickups', async (req, res) => {
   const volunteerId = req.params.id;
@@ -108,7 +117,7 @@ router.get('/:id/pickups', async (req, res) => {
         path: 'donor',
         select: 'fullName contactNumber'
       },
-      select: 'foodItem quantity location expiryDate status donor'
+      select: 'foodItem quantity location expiryDate status donor foodType pickupTimeStart pickupTimeEnd foodPreparedAt foodAvailableFrom servings isRefrigerated specialNotes coordinates'
     });
 
     const formatted = pickups
@@ -116,8 +125,10 @@ router.get('/:id/pickups', async (req, res) => {
       .map(p => ({
         ...p.donation._doc,
         pickupId: p._id,
+        donationId: p.donation._id,
         acceptedAt: p.acceptedAt
       }));
+  
 
     res.status(200).json(formatted);
   } catch (err) {
@@ -147,7 +158,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * 🔄 Toggle availability
+ * 🔄 Toggle volunteer availability
  */
 router.patch('/:id/toggleAvailability', async (req, res) => {
   const { id } = req.params;
@@ -169,5 +180,35 @@ router.patch('/:id/toggleAvailability', async (req, res) => {
     res.status(500).json({ error: 'Failed to update availability' });
   }
 });
+
+/**
+ * ✅ Mark a donation as Delivered (simple status update only)
+ */
+router.patch('/deliver/:donationId', async (req, res) => {
+  const donationId = req.params.donationId.trim(); // ✅ Trim newline/space
+
+  if (!mongoose.Types.ObjectId.isValid(donationId)) {
+    return res.status(400).json({ error: `Invalid donation ID: ${donationId}` });
+  }
+
+  try {
+    const updatedDonation = await Donation.findByIdAndUpdate(
+      donationId,
+      { status: 'Delivered', deliveredAt: new Date() },
+      { new: true, runValidators: false }
+    );
+
+    if (!updatedDonation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Donation marked as delivered' });
+  } catch (err) {
+    console.error('❌ Error marking donation as delivered:', err.message);
+    res.status(500).json({ error: 'Failed to mark donation as delivered' });
+  }
+});
+
+
 
 module.exports = router;
