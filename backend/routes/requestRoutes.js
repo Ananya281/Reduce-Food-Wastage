@@ -102,4 +102,80 @@ router.get('/locations/:receiverId', async (req, res) => {
   }
 });
 
+// ============================
+// ❌ Delete Request by ID
+// ============================
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  console.log('🗑️ DELETE request received for ID:', id);
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.log('❌ Invalid ID');
+    return res.status(400).json({ error: 'Invalid request ID' });
+  }
+
+  try {
+    const found = await Request.findById(id);
+    if (!found) {
+      console.log('❌ Request not found');
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    if (found.status !== 'Pending') {
+      console.log('⚠️ Request cannot be deleted because status is:', found.status);
+      return res.status(403).json({ error: 'Only pending requests can be cancelled' });
+    }
+
+    await Request.findByIdAndDelete(id);
+    console.log('✅ Request deleted successfully:', id);
+    res.status(200).json({ success: true, message: 'Request deleted successfully' });
+  } catch (err) {
+    console.error('❌ Error deleting request:', err.message);
+    res.status(500).json({ error: 'Server error while deleting request' });
+  }
+});
+
+// ============================
+// ✏️ Update Request by ID
+// ============================
+router.patch('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid request ID' });
+  }
+
+  try {
+    const existing = await Request.findById(id);
+    if (!existing) return res.status(404).json({ error: 'Request not found' });
+
+    if (existing.status !== 'Pending') {
+      return res.status(403).json({ error: 'Only pending requests can be updated' });
+    }
+
+    const updateData = {
+      foodType: req.body.foodType,
+      quantity: req.body.quantity,
+      location: req.body.location,
+      urgency: req.body.urgency,
+      preferredDate: req.body.preferredDate || null,
+      contactNumber: req.body.contactNumber || '',
+      specialNotes: req.body.specialNotes || '',
+      receiver: req.body.receiver
+    };
+
+    const updated = await Request.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    });
+
+    console.log('✏️ Request updated:', updated._id);
+    res.status(200).json({ success: true, updated });
+  } catch (err) {
+    console.error('❌ Error updating request:', err.message);
+    res.status(500).json({ error: 'Server error while updating request' });
+  }
+});
+
 module.exports = router;

@@ -31,16 +31,29 @@ exports.register = async (req, res) => {
       availableEndTime,
       ngoRegNumber,
       ngoType,
-      dailyFoodNeed
+      dailyFoodNeed,
+      ngoName,
+      ngoAddress,
+      operatingHours,
+      website,
+      ngoOperatingDays, // ✅ new
+      ngoStartTime,      // ✅ new
+      ngoEndTime         // ✅ new
     } = req.body;
 
     if (!fullName || !email || !password || !role) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ error: 'Full name, email, password, and role are required' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    if (role === 'NGOs') {
+      if (!ngoRegNumber || !ngoType || !dailyFoodNeed || !ngoName || !ngoAddress || !operatingHours || !ngoOperatingDays || !ngoStartTime || !ngoEndTime) {
+        return res.status(400).json({ error: 'Please fill all required NGO details' });
+      }
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -63,12 +76,18 @@ exports.register = async (req, res) => {
       availableEndTime,
       ngoRegNumber,
       ngoType,
-      dailyFoodNeed
+      dailyFoodNeed,
+      ngoName,
+      ngoAddress,
+      operatingHours,
+      website,
+      ngoOperatingDays,
+      ngoStartTime,
+      ngoEndTime
     });
 
     const token = generateToken(newUser);
     res.status(201).json({ token, user: newUser });
-
   } catch (err) {
     console.error("❌ Registration Error:", err);
     if (err.name === 'ValidationError') {
@@ -98,7 +117,6 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user);
     res.json({ token, user });
-
   } catch (err) {
     console.error('❌ Login Error:', err);
     res.status(500).json({ error: 'Server error during login' });
@@ -138,7 +156,6 @@ exports.googleRegister = async (req, res) => {
 
     const token = generateToken(user);
     res.status(200).json({ token, user });
-
   } catch (error) {
     console.error('❌ Google Register Error:', error);
     res.status(500).json({ error: 'Google register failed. Please try again later.' });
@@ -170,7 +187,6 @@ exports.googleLogin = async (req, res) => {
 
     const token = generateToken(user);
     res.status(200).json({ token, user });
-
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     res.status(500).json({ error: 'Google login failed. Please try again.' });

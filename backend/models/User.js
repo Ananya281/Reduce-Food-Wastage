@@ -22,10 +22,14 @@ const userSchema = new mongoose.Schema({
 
   password: {
     type: String,
-    minlength: [6, 'Password must be at least 6 characters'],
     required: function () {
       return !this.googleId;
     },
+    minlength: [8, 'Password must be at least 8 characters'],
+    match: [
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
+      'Password must include uppercase, lowercase, number, and special character'
+    ],
     select: false,
   },
 
@@ -73,6 +77,45 @@ const userSchema = new mongoose.Schema({
       return this.role === 'NGOs';
     },
   },
+  ngoName: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
+  },
+  ngoAddress: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
+  },
+  ngoOperatingDays: {
+    type: [String],
+    required: function () {
+      return this.role === 'NGOs';
+    },
+  },
+  ngoStartTime: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
+  },
+  ngoEndTime: {
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === 'NGOs';
+    },
+  },
+  website: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 
   createdAt: {
     type: Date,
@@ -82,6 +125,7 @@ const userSchema = new mongoose.Schema({
   versionKey: false,
 });
 
+// Handle duplicate email error
 userSchema.post('save', function (error, doc, next) {
   if (error.name === 'MongoServerError' && error.code === 11000) {
     next(new Error('A user with this email already exists.'));
