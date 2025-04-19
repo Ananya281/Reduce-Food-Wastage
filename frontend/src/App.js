@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import 'leaflet/dist/leaflet.css'; // Add this line at the top
+import 'leaflet/dist/leaflet.css';
 
 // Pages
 import Home from './pages/Home';
@@ -11,7 +11,8 @@ import Register from './pages/Register';
 import Donor from './pages/Donor';
 import Volunteer from './pages/Volunteer';
 import NGO from './pages/NGO';
-import AllDonationsPage from './pages/AllDonationsPage'; // Added for volunteer donation view
+import AllDonationsPage from './pages/AllDonationsPage';
+import NGORequests from './pages/NGORequests'; // ✅ Added NGO Requests Page
 
 // Service detail pages
 import FoodPickup from './pages/services/FoodPickup';
@@ -31,6 +32,7 @@ function App() {
         <Route path="/volunteer" element={<Volunteer />} />
         <Route path="/volunteer/alldonations" element={<AllDonationsPage />} />
         <Route path="/ngo" element={<NGO />} />
+        <Route path="/ngo-requests" element={<NGORequests />} /> {/* ✅ New Route */}
 
         {/* Services Detail Routes */}
         <Route path="/services/food-pickup" element={<FoodPickup />} />

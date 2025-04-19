@@ -58,6 +58,40 @@ router.post('/', async (req, res) => {
 });
 
 // ============================
+// 🌍 Reverse Geocoding via OpenStreetMap
+// ============================
+const fetch = require('node-fetch'); // Ensure this is installed
+
+router.get('/reverse-geocode', async (req, res) => {
+  const { lat, lng } = req.query;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+      headers: {
+        'User-Agent': 'reduce-food-waste-app/1.0 (your@email.com)',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Reverse geocoding API error');
+    }
+
+    const data = await response.json();
+    const address = data.display_name || `${lat}, ${lng}`;
+
+    res.status(200).json({ address });
+  } catch (err) {
+    console.error('❌ Reverse geocoding failed:', err);
+    res.status(500).json({ error: 'Failed to fetch address' });
+  }
+});
+
+// ============================
 // ✏️ Update a Donation (Edit)
 // ============================
 router.patch('/:donationId', async (req, res) => {

@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck,
-  FaPhone, FaArchive, FaInfoCircle, FaBoxes, FaTrash, FaEdit
+  FaPhone, FaArchive, FaInfoCircle, FaBoxes, FaTrash, FaEdit, FaFlag, FaLocationArrow
 } from 'react-icons/fa';
+
+
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -17,7 +19,10 @@ const Donor = () => {
     storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
     coordinates: { lat: null, lng: null }
   });
+  const [ngoRequests, setNgoRequests] = useState([]);
 
+
+  const [isLocating, setIsLocating] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const navigate = useNavigate();
   const routeLocation = useLocation();
@@ -35,14 +40,85 @@ const [filterStatus, setFilterStatus] = useState('');
       navigate('/');
       return;
     }
+  
     if (routeLocation.state?.welcome) {
       setShowWelcome(true);
       setTimeout(() => setShowWelcome(false), 3000);
     }
-    getCurrentLocation();
+  
+    if (routeLocation.state?.prefillRequest) {
+      const req = routeLocation.state.prefillRequest;
+      setFormData(prev => ({
+        ...prev,
+        foodItem: req.foodItem || '',
+        foodType: req.foodType || '',
+        quantity: req.quantity || '',
+        location: req.location || '',
+        contactNumber: req.contactNumber || '',
+        specialNotes: req.specialNotes || '',
+      }));
+      toast.info('📝 NGO request prefilled. Please complete the donation form.');
+    }
+  
+    handleAutoFillLocation(); // ✅ FIXED: this now invokes the function
     fetchDonations();
     fetchPreviousLocations();
+    fetchNGORequests();
   }, []);
+  
+
+  const handleAutoFillLocation = () => {
+    if (!navigator.geolocation) {
+      return toast.error('❌ Geolocation is not supported by your browser.');
+    }
+  
+    setIsLocating(true);
+  
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+  
+        try {
+          const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
+  
+          if (!apiKey) {
+            throw new Error("OpenCage API key is missing");
+          }
+  
+          const res = await fetch(
+            `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`
+          );
+  
+          if (!res.ok) throw new Error('Failed to fetch address');
+  
+          const data = await res.json();
+          const address = data.results[0]?.formatted || `${latitude}, ${longitude}`;
+  
+          setFormData(prev => ({
+            ...prev,
+            location: address,
+            ngoAddress: address,
+            coordinates: { lat: latitude, lng: longitude }
+          }));
+  
+          toast.success("📍 Location auto-filled!");
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          toast.error("❌ Failed to fetch address.");
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        console.error("Location access denied:", error);
+        toast.error("❌ Unable to access your location.");
+        setIsLocating(false);
+      }
+    );
+  };
+  
+  
+  
 
   const fetchDonations = async () => {
     try {
@@ -65,26 +141,54 @@ const [filterStatus, setFilterStatus] = useState('');
   };
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
+    if (!navigator.geolocation) {
+      toast.error("❌ Geolocation is not supported by your browser.");
+      return;
+    }
+  
+    setIsLocating(true); // ✅ Start spinner
+  
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, {
-            headers: { 'User-Agent': 'food-donation-app/1.0' }
-          });
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            {
+              headers: {
+                'User-Agent': 'food-donation-app/1.0',
+                'Accept': 'application/json'
+              }
+            }
+          );
+  
+          if (!res.ok) throw new Error('Failed to fetch address');
+  
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
+  
           setFormData(prev => ({
             ...prev,
             location: address,
             coordinates: { lat: latitude, lng: longitude }
           }));
-        } catch {
+  
+          toast.success("📍 Location auto-filled!");
+        } catch (error) {
           toast.error("❌ Failed to auto-fill location.");
+          console.error("Reverse geocoding error:", error);
+        } finally {
+          setIsLocating(false); // ✅ Stop spinner
         }
-      }, () => toast.error("❌ Unable to access your location."));
-    }
+      },
+      (error) => {
+        toast.error("❌ Unable to access your location.");
+        setIsLocating(false); // ✅ Stop spinner
+      }
+    );
   };
+  
+  
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -191,6 +295,16 @@ const [filterStatus, setFilterStatus] = useState('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };  
 
+  const fetchNGORequests = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/requests`);
+      const data = await res.json();
+      setNgoRequests(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load NGO requests:", error);
+    }
+  };  
+
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto">
@@ -203,6 +317,14 @@ const [filterStatus, setFilterStatus] = useState('');
         <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">← Back to Home</button>
         <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, Donor!</h1>
         <p className="text-gray-700 mb-10">Use the form below to {editingId ? 'update' : 'create'} a donation and track your contributions.</p>
+
+        <button
+  onClick={() => navigate('/ngo-requests')}
+  className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+>
+  📋 View NGO Requests
+</button>
+
 
         {/* Donation Form */}
         <div className="bg-white p-6 rounded-xl shadow-md mb-12">
@@ -221,12 +343,35 @@ const [filterStatus, setFilterStatus] = useState('');
             </select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity (e.g., 10kg)" className="p-3 border rounded" required />
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
-            <div className="md:col-span-2">
-              <input name="location" list="locationOptions" value={formData.location} onChange={handleChange} placeholder="Pickup Location" className="p-3 border rounded w-full" required />
-              <datalist id="locationOptions">
-                {locationSuggestions.map((loc, i) => <option key={i} value={loc} />)}
-              </datalist>
-            </div>
+ {/* Address field + auto location button */}
+ <div className="mb-4">
+  <label htmlFor="ngoAddress" className="text-sm font-medium block mb-1">NGO Address/Location</label>
+  <div className="flex items-center gap-2">
+    <input
+      name="ngoAddress"
+      id="ngoAddress"
+      placeholder="NGO Address/Location"
+      value={formData.ngoAddress}
+      className="flex-1 p-3 border rounded"
+      onChange={handleChange}
+    />
+    <button
+  type="button"
+  disabled={isLocating}
+  onClick={handleAutoFillLocation}
+  className={`text-sm px-3 py-2 border rounded transition ${
+    isLocating
+      ? 'bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed'
+      : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
+  }`}
+>
+  {isLocating ? 'Fetching...' : '📍 Use Location'}
+</button>
+
+  </div>
+</div>
+
+
 
             {[
               { label: 'When was the food prepared?', name: 'foodPreparedDate' },
@@ -268,15 +413,61 @@ const [filterStatus, setFilterStatus] = useState('');
             </div>
           </form>
         </div>
+{/* Filter Controls */}
+<div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+  <select
+    value={filterStatus}
+    onChange={(e) => setFilterStatus(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="">All Statuses</option>
+    <option value="Available">Available</option>
+    <option value="Picked">Picked</option>
+    <option value="Delivered">Delivered</option>
+  </select>
 
+  <select
+    value={filterType}
+    onChange={(e) => setFilterType(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="">All Food Types</option>
+    <option value="Veg">Veg</option>
+    <option value="Non-Veg">Non-Veg</option>
+    <option value="Canned">Canned</option>
+    <option value="Cooked">Cooked</option>
+    <option value="Packaged">Packaged</option>
+    <option value="Raw">Raw</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <select
+    value={searchText}
+    onChange={(e) => setSearchText(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="newest">Newest First</option>
+    <option value="oldest">Oldest First</option>
+  </select>
+</div>
         {/* My Donations */}
-<h2 className="text-2xl font-bold text-green-700 mb-4">My Donations</h2>
+  <h2 className="text-2xl font-bold text-green-700 mb-4">My Donations</h2>
 
         {!donations.length ? (
           <p className="text-gray-500">You haven’t made any donations yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {donations.map((donation) => (
+          {donations
+  .filter(donation =>
+    (!filterStatus || donation.status === filterStatus) &&
+    (!filterType || donation.foodType === filterType)
+  )
+  .sort((a, b) => {
+    const dateA = new Date(a.expiryDate);
+    const dateB = new Date(b.expiryDate);
+    return searchText === 'oldest' ? dateA - dateB : dateB - dateA;
+  })
+  .map((donation) => (
               <div key={donation._id} className="relative bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
                 {donation?.status === 'Available' && (
                   <div className="absolute top-3 right-3 flex space-x-3">

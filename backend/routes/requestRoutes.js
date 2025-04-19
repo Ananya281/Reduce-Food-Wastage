@@ -10,6 +10,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   try {
     const {
+      foodItem,
       foodType,
       quantity,
       location,
@@ -26,6 +27,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         error: 'Missing required fields.',
         missingFields: {
+          foodItem: !!foodItem,
           foodType: !!foodType,
           quantity: !!quantity,
           location: !!location,
@@ -36,6 +38,7 @@ router.post('/', async (req, res) => {
     }
 
     const newRequest = await Request.create({
+      foodItem,
       foodType,
       quantity,
       location,
@@ -155,6 +158,7 @@ router.patch('/:id', async (req, res) => {
     }
 
     const updateData = {
+      foodItem: req.body.foodItem, // ✅ Add this line
       foodType: req.body.foodType,
       quantity: req.body.quantity,
       location: req.body.location,

@@ -1,11 +1,17 @@
 const mongoose = require('mongoose');
 
 const requestSchema = new mongoose.Schema({
-  foodType: {
+  foodItem: {
     type: String,
     required: true,
     trim: true
   },
+foodType: {
+  type: String,
+  required: true,
+  trim: true,
+  enum: ['Veg', 'Non-Veg', 'Cooked', 'Canned', 'Packaged', 'Raw', 'Other']
+},
   quantity: {
     type: String,
     required: true,

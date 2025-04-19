@@ -21,6 +21,10 @@ const NGO = () => {
 
   const navigate = useNavigate();
   const receiverId = localStorage.getItem('userId');
+  const [statusFilter, setStatusFilter] = useState('');
+const [urgencyFilter, setUrgencyFilter] = useState('');
+const [sortOrder, setSortOrder] = useState('newest');
+
 
   const fetchRequests = async () => {
     try {
@@ -42,22 +46,45 @@ const NGO = () => {
   }, [receiverId]);
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-          const data = await res.json();
-          const address = data.display_name || `${latitude}, ${longitude}`;
-          setFormData(prev => ({ ...prev, location: address }));
-        } catch (err) {
-          console.error("Geolocation reverse lookup failed:", err);
-        }
-      }, (error) => {
-        console.warn("Geolocation error:", error.message);
-      });
+    if (!navigator.geolocation) {
+      return toast.error('❌ Geolocation is not supported by your browser.');
     }
+  
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+  
+        try {
+          const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
+  
+          if (!apiKey) {
+            throw new Error("OpenCage API key is missing");
+          }
+  
+          const res = await fetch(
+            `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`
+          );
+  
+          if (!res.ok) throw new Error('Failed to fetch address');
+  
+          const data = await res.json();
+          const address = data.results[0]?.formatted || `${latitude}, ${longitude}`;
+  
+          setFormData(prev => ({ ...prev, location: address }));
+  
+          toast.success("📍 NGO Location auto-filled!");
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          toast.error("❌ Failed to fetch location.");
+        }
+      },
+      (error) => {
+        console.warn("Location access denied:", error.message);
+        toast.error("❌ Unable to access your location.");
+      }
+    );
   };
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -148,6 +175,17 @@ const NGO = () => {
     setEditRequestId(null);
   };
 
+  const filteredRequests = requests
+  .filter(req =>
+    (!statusFilter || req.status === statusFilter) &&
+    (!urgencyFilter || req.urgency === urgencyFilter)
+  )
+  .sort((a, b) => {
+    const dateA = new Date(a.preferredDate || a.requestedAt);
+    const dateB = new Date(b.preferredDate || b.requestedAt);
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+  });
+
   return (
     <div className="pt-24 px-6 pb-16 bg-white min-h-screen">
       <div className="max-w-6xl mx-auto">
@@ -160,9 +198,48 @@ const NGO = () => {
         <div className="bg-gray-50 p-6 rounded-xl shadow mb-10">
           <h2 className="text-2xl font-semibold text-green-600 mb-4">{isEditing ? 'Edit Request' : 'Submit a Food Request'}</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input name="foodType" value={formData.foodType} onChange={handleChange} placeholder="Food Type" required className="p-3 border rounded" />
+          <input
+  name="foodItem"
+  value={formData.foodItem}
+  onChange={handleChange}
+  placeholder="Food Item"
+  required
+  className="p-3 border rounded"
+/>
+          <select
+  name="foodType"
+  value={formData.foodType}
+  onChange={handleChange}
+  className="p-3 border rounded"
+  required
+>
+  <option value="">Select Food Type</option>
+  <option value="Veg">Veg</option>
+  <option value="Non-Veg">Non-Veg</option>
+  <option value="Cooked">Cooked</option>
+  <option value="Canned">Canned</option>
+  <option value="Packaged">Packaged</option>
+  <option value="Raw">Raw</option>
+  <option value="Other">Other</option>
+</select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity" required className="p-3 border rounded" />
-            <input name="location" value={formData.location} onChange={handleChange} placeholder="Location" required className="p-3 border rounded" />
+            <div className="md:col-span-2 flex items-center gap-2">
+  <input
+    name="location"
+    value={formData.location}
+    onChange={handleChange}
+    placeholder="Location"
+    required
+    className="p-3 border rounded flex-1"
+  />
+  <button
+    type="button"
+    onClick={getCurrentLocation}
+    className="px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded text-sm text-blue-700"
+  >
+    📍 Use My Location
+  </button>
+</div>
             <select name="urgency" value={formData.urgency} onChange={handleChange} className="p-3 border rounded">
               <option value="Normal">Normal</option>
               <option value="Urgent">Urgent</option>
@@ -175,6 +252,51 @@ const NGO = () => {
             </button>
           </form>
         </div>
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+  <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
+  <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="">All Statuses</option>
+    <option value="Pending">Pending</option>
+    <option value="Accepted">Accepted</option>
+    <option value="Completed">Completed</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+
+  <select
+    value={urgencyFilter}
+    onChange={(e) => setUrgencyFilter(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="">All Urgencies</option>
+    <option value="Normal">Normal</option>
+    <option value="Urgent">Urgent</option>
+  </select>
+
+  <select
+    value={sortOrder}
+    onChange={(e) => setSortOrder(e.target.value)}
+    className="p-2 border rounded"
+  >
+    <option value="newest">Newest First</option>
+    <option value="oldest">Oldest First</option>
+  </select>
+
+  <button
+            onClick={() => {
+              setStatusFilter('');
+              setUrgencyFilter('');
+              setSortOrder('newest');
+            }}
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            🔄 Reset Filters
+          </button>
+</div>
+</div>
 
         {/* Request List */}
         <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
@@ -184,8 +306,8 @@ const NGO = () => {
           <p className="text-gray-500">No requests found.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {requests.map((req) => (
-              <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+          {filteredRequests.map((req) => (
+            <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
                 <div className="flex justify-between items-start">
                   <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2"><FaBoxOpen /> {req.foodType || 'N/A'}</h3>
                   {req.status === 'Pending' && (
