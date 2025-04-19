@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Donation = require('../models/Donation');
 const Feedback = require('../models/Feedback');
 
@@ -18,23 +19,10 @@ router.post('/', async (req, res) => {
 
   try {
     const {
-      donor,
-      foodItem,
-      foodType,
-      quantity,
-      packaging,
-      location,
-      foodPreparedDate,
-      donationAvailableDate,
-      expiryDate,
-      pickupStartTime,
-      pickupEndTime,
-      servings,
-      contactNumber,
-      storageInstructions,
-      specialNotes,
-      isRefrigerated,
-      coordinates
+      donor, foodItem, foodType, quantity, packaging, location,
+      foodPreparedDate, donationAvailableDate, expiryDate,
+      pickupStartTime, pickupEndTime, servings, contactNumber,
+      storageInstructions, specialNotes, isRefrigerated, coordinates
     } = req.body;
 
     if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
@@ -57,7 +45,7 @@ router.post('/', async (req, res) => {
       contactNumber,
       storageInstructions,
       specialNotes,
-      isRefrigerated: isRefrigerated === 'Yes',
+      isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
       coordinates
     });
 
@@ -66,6 +54,65 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('❌ Error creating donation:', err);
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
+});
+
+// ============================
+// ✏️ Update a Donation (Edit)
+// ============================
+router.patch('/:donationId', async (req, res) => {
+  const { donationId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(donationId)) {
+    return res.status(400).json({ error: 'Invalid donation ID' });
+  }
+
+  try {
+    const updateFields = {
+      ...req.body,
+      preparedAt: req.body.foodPreparedDate,
+      availableFrom: req.body.donationAvailableDate,
+      isRefrigerated: req.body.isRefrigerated === true || req.body.isRefrigerated === 'Yes',
+      updatedAt: new Date()
+    };
+
+    const updatedDonation = await Donation.findByIdAndUpdate(
+      donationId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedDonation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    res.status(200).json(updatedDonation);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update donation', details: err.message });
+  }
+});
+
+// ============================
+// 🗑️ Delete a Donation
+// ============================
+router.delete('/:donationId', async (req, res) => {
+  const { donationId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(donationId)) {
+    return res.status(400).json({ error: 'Invalid donation ID' });
+  }
+
+  try {
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ error: 'Donation not found' });
+
+    if (donation.status !== STATUS.AVAILABLE) {
+      return res.status(400).json({ error: 'Cannot delete donation. It has already been picked or delivered.' });
+    }
+
+    await Donation.findByIdAndDelete(donationId);
+    res.status(200).json({ message: 'Donation deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete donation' });
   }
 });
 
@@ -89,6 +136,10 @@ router.get('/', async (req, res) => {
 router.get('/donor/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(donorId)) {
+      return res.status(400).json({ error: 'Invalid donor ID' });
+    }
+
     const donations = await Donation.find({ donor: donorId }).populate('donor');
     res.status(200).json(donations);
   } catch (err) {
@@ -118,17 +169,15 @@ router.post('/nearby', async (req, res) => {
     const { userId, location, filters } = req.body;
     const query = { status: STATUS.AVAILABLE };
 
-    // Basic filters
     if (filters?.foodType) query.foodType = filters.foodType;
     if (filters?.urgency) query.urgency = filters.urgency;
     if (filters?.vehicleAvailable !== '') {
       query.vehicleAvailable = filters.vehicleAvailable === 'true';
-    }    
+    }
     if (filters?.timeSlot) {
       query.pickupStartTime = { $regex: filters.timeSlot, $options: 'i' };
     }
 
-    // Fetch donations
     let donations = await Donation.find(query).populate('donor');
 
     const toRad = (val) => (val * Math.PI) / 180;
@@ -143,12 +192,11 @@ router.post('/nearby', async (req, res) => {
       return R * c;
     };
 
-    // Attach distances and filter
     if (location?.length === 2) {
       donations = donations.map(d => {
         if (d.coordinates?.lat && d.coordinates?.lng) {
           const dist = getDistanceInKm(location[0], location[1], d.coordinates.lat, d.coordinates.lng);
-          return { ...d._doc, distance: dist.toFixed(2), coordinates: d.coordinates, _id: d._id };
+          return { ...d._doc, distance: dist.toFixed(2) };
         }
         return null;
       }).filter(Boolean);

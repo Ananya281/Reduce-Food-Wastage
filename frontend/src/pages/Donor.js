@@ -2,29 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck,
-  FaPhone, FaArchive, FaInfoCircle, FaBoxes
+  FaPhone, FaArchive, FaInfoCircle, FaBoxes, FaTrash, FaEdit
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Donor = () => {
   const [donations, setDonations] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    foodItem: '',
-    foodType: '',
-    quantity: '',
-    packaging: '',
-    location: '',
-    foodPreparedDate: '',
-    donationAvailableDate: '',
-    expiryDate: '',
-    pickupStartTime: '',
-    pickupEndTime: '',
-    servings: '',
-    contactNumber: '',
-    storageInstructions: '',
-    specialNotes: '',
-    isRefrigerated: 'No',
+    foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
+    foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
+    pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
+    storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
     coordinates: { lat: null, lng: null }
   });
 
@@ -33,6 +23,10 @@ const Donor = () => {
   const routeLocation = useLocation();
   const donorId = localStorage.getItem('userId');
   const [showWelcome, setShowWelcome] = useState(false);
+  const [searchText, setSearchText] = useState('');
+const [filterType, setFilterType] = useState('');
+const [filterStatus, setFilterStatus] = useState('');
+
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -83,7 +77,7 @@ const Donor = () => {
           setFormData(prev => ({
             ...prev,
             location: address,
-            coordinates: { lat: latitude, lng: longitude } // ✅ Add coordinates here
+            coordinates: { lat: latitude, lng: longitude }
           }));
         } catch {
           toast.error("❌ Failed to auto-fill location.");
@@ -111,8 +105,13 @@ const Donor = () => {
     }
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/donations`, {
-        method: 'POST',
+      const url = editingId
+        ? `${BACKEND_URL}/api/donations/${editingId}`
+        : `${BACKEND_URL}/api/donations`;
+      const method = editingId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -120,12 +119,15 @@ const Donor = () => {
           preparedAt: formData.foodPreparedDate,
           availableFrom: formData.donationAvailableDate,
           isRefrigerated: formData.isRefrigerated === 'Yes',
-          coordinates: formData.coordinates // ✅ Send coordinates here
+          coordinates: formData.coordinates
         })
       });
+
       const data = await res.json();
-      if (data._id) {
-        toast.success('✅ Donation created!');
+
+      if (data._id || data.modifiedCount) {
+        toast.success(editingId ? '✏️ Donation updated!' : '✅ Donation created!');
+        setEditingId(null);
         setFormData({
           foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
@@ -135,11 +137,59 @@ const Donor = () => {
         });
         fetchDonations();
         fetchPreviousLocations();
-      } else toast.error('❌ Failed to create donation');
+      } else toast.error('❌ Failed to save donation');
     } catch {
-      toast.error('❌ Error during donation creation');
+      toast.error('❌ Error during donation save');
     }
   };
+
+  const handleDelete = async (donationId) => {
+    if (!window.confirm("Are you sure you want to delete this donation?")) return;
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/donations/${donationId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('🗑️ Donation deleted!');
+        setDonations(prev => prev.filter(d => d._id !== donationId));
+      } else {
+        toast.error(data.error || '❌ Could not delete donation.');
+      }
+    } catch {
+      toast.error('❌ Error deleting donation.');
+    }
+  };
+
+  const handleEdit = (donation) => {
+    setEditingId(donation._id);
+    setFormData({
+      ...donation,
+      foodPreparedDate: donation.preparedAt?.slice(0, 16) || '',
+      donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
+      expiryDate: donation.expiryDate?.slice(0, 16) || '',
+      isRefrigerated: donation.isRefrigerated ? 'Yes' : 'No',
+      coordinates: donation.coordinates || { lat: null, lng: null }
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDonateAgain = (donation) => {
+    setEditingId(null); // Ensure it's treated as a new donation
+    setFormData({
+      ...donation,
+      foodPreparedDate: '',
+      donationAvailableDate: '',
+      expiryDate: '',
+      pickupStartTime: '',
+      pickupEndTime: '',
+      coordinates: donation.coordinates || { lat: null, lng: null },
+      isRefrigerated: donation.isRefrigerated ? 'Yes' : 'No'
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };  
 
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
@@ -152,11 +202,11 @@ const Donor = () => {
 
         <button onClick={() => navigate('/')} className="mb-4 text-sm text-blue-600 hover:underline">← Back to Home</button>
         <h1 className="text-4xl font-bold text-green-700 mb-2">Welcome, Donor!</h1>
-        <p className="text-gray-700 mb-10">Use the form below to donate food and track your contributions.</p>
+        <p className="text-gray-700 mb-10">Use the form below to {editingId ? 'update' : 'create'} a donation and track your contributions.</p>
 
         {/* Donation Form */}
         <div className="bg-white p-6 rounded-xl shadow-md mb-12">
-          <h2 className="text-2xl font-semibold text-green-700 mb-4">Create a Donation</h2>
+          <h2 className="text-2xl font-semibold text-green-700 mb-4">{editingId ? 'Edit Donation' : 'Create a Donation'}</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input name="foodItem" value={formData.foodItem} onChange={handleChange} placeholder="Food Item" className="p-3 border rounded" required />
             <select name="foodType" value={formData.foodType} onChange={handleChange} className="p-3 border rounded" required>
@@ -171,7 +221,6 @@ const Donor = () => {
             </select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity (e.g., 10kg)" className="p-3 border rounded" required />
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
-
             <div className="md:col-span-2">
               <input name="location" list="locationOptions" value={formData.location} onChange={handleChange} placeholder="Pickup Location" className="p-3 border rounded w-full" required />
               <datalist id="locationOptions">
@@ -179,15 +228,16 @@ const Donor = () => {
               </datalist>
             </div>
 
-            {[{ label: 'When was the food prepared?', name: 'foodPreparedDate' },
+            {[
+              { label: 'When was the food prepared?', name: 'foodPreparedDate' },
               { label: 'When will it be available for donation?', name: 'donationAvailableDate' },
-              { label: 'When does the food expire?', name: 'expiryDate' }]
-              .map(({ label, name }) => (
-                <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
-                  <label className="text-center font-medium">{label}</label>
-                  <input type="datetime-local" name={name} value={formData[name]} onChange={handleChange} className="p-3 border rounded w-full text-black" required />
-                </div>
-              ))}
+              { label: 'When does the food expire?', name: 'expiryDate' }
+            ].map(({ label, name }) => (
+              <div key={name} className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 items-center gap-4 text-green-700">
+                <label className="text-center font-medium">{label}</label>
+                <input type="datetime-local" name={name} value={formData[name]} onChange={handleChange} className="p-3 border rounded w-full text-black" required />
+              </div>
+            ))}
 
             {[{ label: 'Pickup window starts at', name: 'pickupStartTime' },
               { label: 'Pickup window ends at', name: 'pickupEndTime' }]
@@ -213,20 +263,37 @@ const Donor = () => {
 
             <div className="md:col-span-2">
               <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded mt-2 transition">
-                Submit Donation
+                {editingId ? 'Update Donation' : 'Submit Donation'}
               </button>
             </div>
           </form>
         </div>
 
         {/* My Donations */}
-        <h2 className="text-2xl font-bold text-green-700 mb-4">My Donations</h2>
+<h2 className="text-2xl font-bold text-green-700 mb-4">My Donations</h2>
+
         {!donations.length ? (
           <p className="text-gray-500">You haven’t made any donations yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {donations.map((donation) => (
-              <div key={donation._id} className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
+              <div key={donation._id} className="relative bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
+                {donation?.status === 'Available' && (
+                  <div className="absolute top-3 right-3 flex space-x-3">
+                    <FaEdit
+                      onClick={() => handleEdit(donation)}
+                      className="text-yellow-500 hover:text-yellow-600 cursor-pointer"
+                      title="Edit"
+                      size={18}
+                    />
+                    <FaTrash
+                      onClick={() => handleDelete(donation._id)}
+                      className="text-red-600 hover:text-red-700 cursor-pointer"
+                      title="Delete"
+                      size={18}
+                    />
+                  </div>
+                )}
                 <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
                   <FaUtensils /> {donation.foodItem || 'Not Provided'}
                 </h3>
@@ -242,6 +309,15 @@ const Donor = () => {
                 {donation.specialNotes && <p className="text-gray-600">Notes: {donation.specialNotes}</p>}
                 <p className="text-gray-600">Refrigerated: {donation.isRefrigerated ? 'Yes' : 'No'}</p>
                 <p className="text-gray-600 mt-2"><strong>Status:</strong> {donation.status}</p>
+
+{donation.status !== 'Available' && (
+  <button
+    onClick={() => handleDonateAgain(donation)}
+    className="mt-3 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium rounded transition"
+  >
+    ♻️ Donate Again
+  </button>
+)}
               </div>
             ))}
           </div>
