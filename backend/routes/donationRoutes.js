@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Donation = require('../models/Donation');
 const Feedback = require('../models/Feedback');
+require('../models/Request'); // ✅ ensure Request model is registered
 
 const router = express.Router();
 
@@ -22,32 +23,56 @@ router.post('/', async (req, res) => {
       donor, foodItem, foodType, quantity, packaging, location,
       foodPreparedDate, donationAvailableDate, expiryDate,
       pickupStartTime, pickupEndTime, servings, contactNumber,
-      storageInstructions, specialNotes, isRefrigerated, coordinates
+      storageInstructions, specialNotes, isRefrigerated, coordinates,
+      ngoRequestId // ✅ Add this line
     } = req.body;
 
     if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
-    const donation = await Donation.create({
-      donor,
-      foodItem,
-      foodType,
-      quantity,
-      packaging,
-      location,
-      preparedAt: foodPreparedDate,
-      availableFrom: donationAvailableDate,
-      expiryDate,
-      pickupStartTime,
-      pickupEndTime,
-      servings,
-      contactNumber,
-      storageInstructions,
-      specialNotes,
-      isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
-      coordinates
-    });
+    let ngoDetails;
+    let ngoRequest;
+    if (ngoRequestId && mongoose.Types.ObjectId.isValid(ngoRequestId)) {
+      ngoRequest = await mongoose.model('Request').findById(ngoRequestId);
+      if (ngoRequest) {
+        ngoDetails = ngoRequest.ngoDetails;
+      }
+    }
+
+// ✅ Now create donation FIRST
+const donation = await Donation.create({
+  donor,
+  foodItem,
+  foodType,
+  quantity,
+  packaging,
+  location,
+  preparedAt: foodPreparedDate,
+  availableFrom: donationAvailableDate,
+  expiryDate,
+  pickupStartTime,
+  pickupEndTime,
+  servings,
+  contactNumber,
+  storageInstructions,
+  specialNotes,
+  isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
+  coordinates,
+  ngoRequest: ngoRequestId || null,
+  ngoDetails: ngoDetails || null
+});
+
+
+// ✅ THEN update NGO request status and link donation
+if (ngoRequest) {
+  ngoRequest.status = 'Accepted';
+  ngoRequest.donation = donation._id;
+  await ngoRequest.save();
+}
+
+    console.log('🔍 ngoRequestId:', ngoRequestId);
+console.log('📌 ngoDetails from request:', ngoDetails);
 
     console.log('✅ Donation successfully created:', donation._id);
     res.status(201).json(donation);

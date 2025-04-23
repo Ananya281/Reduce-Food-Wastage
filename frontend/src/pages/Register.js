@@ -102,9 +102,20 @@ const Register = () => {
 
     if (role !== 'Donor') {
       if (!contactNumber) return showError("Contact number is required");
-      if (
-        role === 'NGOs' && (!formData.ngoRegNumber || !formData.ngoType || !formData.dailyFoodNeed)
-      ) return showError("Fill NGO details");
+      if (role === 'NGOs') {
+        if (
+          !formData.ngoRegNumber ||
+          !formData.ngoType ||
+          !formData.dailyFoodNeed ||
+          !formData.ngoName ||
+          !formData.ngoAddress ||
+          !formData.ngoOperatingDays.length ||
+          !formData.ngoStartTime ||
+          !formData.ngoEndTime
+        ) {
+          return showError("Please fill all required NGO details");
+        }
+      }      
     }
 
     try {

@@ -109,9 +109,9 @@ const NGORequests = () => {
               })
               .map((req) => (
                 <div key={req._id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-200">
-                  <div className="mb-3 flex items-center gap-2 text-green-700 text-xl font-semibold">
-                    <FaUtensils /> Requested: {req.foodType || 'N/A'}
-                  </div>
+                <div className="mb-3 flex items-center gap-2 text-green-700 text-xl font-semibold">
+  <FaUtensils /> {req.foodItem ? `${req.foodItem} (${req.foodType})` : `Requested: ${req.foodType || 'N/A'}`}
+</div>
 
                   <div className="text-gray-700 space-y-1">
                     <p className="flex items-center gap-2"><FaClipboardCheck className="text-gray-500" /> <span className="font-medium">Quantity:</span> {req.quantity}</p>
@@ -133,14 +133,11 @@ const NGORequests = () => {
                       {req.status}
                     </span>
                     <button
-  onClick={() =>
-    navigate('/donor', { state: { prefillRequest: req } })
-  }
-  className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-2"
->
-  ✅ Donate to this Request
-</button>
-
+                      onClick={() => navigate('/donor', { state: { prefillRequest: req } })}
+                      className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-2"
+                    >
+                      ✅ Donate to this Request
+                    </button>
                   </div>
                 </div>
               ))}

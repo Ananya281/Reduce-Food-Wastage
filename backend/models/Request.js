@@ -19,7 +19,7 @@ foodType: {
   },
   location: {
     type: String,
-    required: true,
+    required: false,
     trim: true
   },
   urgency: {
@@ -62,7 +62,19 @@ foodType: {
   },
   updatedAt: {
     type: Date
+  },
+ngoDetails: {
+  name: { type: String },
+  address: { type: String },
+  contactNumber: { type: String },
+  type: { type: String },
+  dailyFoodNeed: { type: String },
+  operatingDays: [String],
+  operatingHours: {
+    start: { type: String },
+    end: { type: String }
   }
+}
 });
 
 // 🔁 Automatically update `updatedAt` field on save

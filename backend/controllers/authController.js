@@ -51,10 +51,14 @@ exports.register = async (req, res) => {
     }
 
     if (role === 'NGOs') {
-      if (!ngoRegNumber || !ngoType || !dailyFoodNeed || !ngoName || !ngoAddress || !operatingHours || !ngoOperatingDays || !ngoStartTime || !ngoEndTime) {
+      if (
+        !ngoRegNumber || !ngoType || !dailyFoodNeed ||
+        !ngoName || !ngoAddress ||
+        !ngoOperatingDays || !ngoStartTime || !ngoEndTime
+      ) {
         return res.status(400).json({ error: 'Please fill all required NGO details' });
       }
-    }
+    }    
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {

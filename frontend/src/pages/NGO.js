@@ -10,14 +10,15 @@ const NGO = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editRequestId, setEditRequestId] = useState(null);
   const [formData, setFormData] = useState({
+    foodItem: '', // ✅ Add this line
     foodType: '',
     quantity: '',
-    location: '',
     urgency: 'Normal',
     preferredDate: '',
     contactNumber: '',
     specialNotes: ''
   });
+  
 
   const navigate = useNavigate();
   const receiverId = localStorage.getItem('userId');
@@ -42,7 +43,6 @@ const [sortOrder, setSortOrder] = useState('newest');
 
   useEffect(() => {
     if (receiverId) fetchRequests();
-    getCurrentLocation();
   }, [receiverId]);
 
   const getCurrentLocation = () => {
@@ -96,33 +96,33 @@ const [sortOrder, setSortOrder] = useState('newest');
     const method = isEditing ? 'PATCH' : 'POST';
 
     try {
+      const { location, ...restFormData } = formData;
+      const payload = { ...restFormData, foodItem: formData.foodItem, receiver: receiverId };
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, receiver: receiverId })
-      });
+        body: JSON.stringify(payload)
+      });          
 
       const data = await res.json();
-      if (data._id || data.success) {
-        toast.success(`✅ Request ${isEditing ? 'updated' : 'submitted'} successfully!`);
-        setFormData({
-          foodType: '',
-          quantity: '',
-          location: '',
-          urgency: 'Normal',
-          preferredDate: '',
-          contactNumber: '',
-          specialNotes: ''
-        });
-        setIsEditing(false);
-        setEditRequestId(null);
-        fetchRequests();
-      } else {
-        toast.error(`❌ Failed to ${isEditing ? 'update' : 'submit'} request`);
-      }
+      if (!res.ok) throw new Error(data.error || 'Submission failed');
+
+      toast.success(`✅ Request ${isEditing ? 'updated' : 'submitted'} successfully!`);
+      setFormData({
+        foodItem: '',
+        foodType: '',
+        quantity: '',
+        urgency: 'Normal',
+        preferredDate: '',
+        contactNumber: '',
+        specialNotes: ''
+      });
+      setIsEditing(false);
+      setEditRequestId(null);
+      fetchRequests();
     } catch (error) {
-      toast.error(`❌ Error during ${isEditing ? 'update' : 'submission'}`);
-      console.error(error);
+      toast.error(`❌ ${error.message}`);
+      console.error('Submission error:', error);
     }
   };
 
@@ -151,7 +151,6 @@ const [sortOrder, setSortOrder] = useState('newest');
     setFormData({
       foodType: req.foodType,
       quantity: req.quantity,
-      location: req.location,
       urgency: req.urgency,
       preferredDate: req.preferredDate?.split('T')[0] || '',
       contactNumber: req.contactNumber,
@@ -165,7 +164,6 @@ const [sortOrder, setSortOrder] = useState('newest');
     setFormData({
       foodType: req.foodType,
       quantity: req.quantity,
-      location: req.location,
       urgency: req.urgency,
       preferredDate: '',
       contactNumber: req.contactNumber,
@@ -185,6 +183,25 @@ const [sortOrder, setSortOrder] = useState('newest');
     const dateB = new Date(b.preferredDate || b.requestedAt);
     return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
   });
+
+  const markAsDelivered = async (requestId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/mark-delivered/${requestId}`, {
+        method: 'PATCH'
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('✅ Marked as Delivered!');
+        fetchRequests(); // refresh UI
+      } else {
+        toast.error(data.error || '❌ Failed to update');
+      }
+    } catch (err) {
+      console.error('Error marking delivered:', err);
+      toast.error('❌ Error updating delivery status');
+    }
+  };  
 
   return (
     <div className="pt-24 px-6 pb-16 bg-white min-h-screen">
@@ -223,23 +240,6 @@ const [sortOrder, setSortOrder] = useState('newest');
   <option value="Other">Other</option>
 </select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity" required className="p-3 border rounded" />
-            <div className="md:col-span-2 flex items-center gap-2">
-  <input
-    name="location"
-    value={formData.location}
-    onChange={handleChange}
-    placeholder="Location"
-    required
-    className="p-3 border rounded flex-1"
-  />
-  <button
-    type="button"
-    onClick={getCurrentLocation}
-    className="px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded text-sm text-blue-700"
-  >
-    📍 Use My Location
-  </button>
-</div>
             <select name="urgency" value={formData.urgency} onChange={handleChange} className="p-3 border rounded">
               <option value="Normal">Normal</option>
               <option value="Urgent">Urgent</option>
@@ -321,7 +321,12 @@ const [sortOrder, setSortOrder] = useState('newest');
                 </div>
                 <p className="text-gray-700 flex items-center gap-2"><FaClock /> Quantity: {req.quantity}</p>
                 <p className="text-gray-700 flex items-center gap-2"><FaFlag /> Urgency: {req.urgency}</p>
-                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.location}</p>
+                {req.ngoDetails?.address && (
+  <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>
+)}
+{req.ngoDetails?.name && (
+  <p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>
+)}
                 {req.preferredDate && <p className="text-gray-700">Preferred: {new Date(req.preferredDate).toLocaleDateString()}</p>}
                 {req.contactNumber && <p className="text-gray-700">Contact: {req.contactNumber}</p>}
                 {req.specialNotes && <p className="text-gray-500 italic">Note: {req.specialNotes}</p>}
@@ -332,6 +337,15 @@ const [sortOrder, setSortOrder] = useState('newest');
                 }`}>
                   {req.status}
                 </span>
+                {/* ✅ Add this below the status badge */}
+                {req.status === 'Accepted' && (
+                  <button
+                    onClick={() => markAsDelivered(req._id)}
+                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                  >
+                    ✅ Mark as Delivered
+                  </button>
+                )}
                 <button onClick={() => handleClone(req)} className="text-green-600 hover:text-green-800 mt-2 text-sm">
                   🔁 Request Again
                 </button>

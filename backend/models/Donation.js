@@ -73,6 +73,15 @@ const donationSchema = new mongoose.Schema({
     lat: { type: Number, required: true },
     lng: { type: Number, required: true }
   },
+  ngoRequest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Request',
+    default: null
+  },
+  ngoDetails: {
+    type: Object,
+    default: null
+  },
   status: {
     type: String,
     enum: ['Available', 'Picked', 'Delivered'],

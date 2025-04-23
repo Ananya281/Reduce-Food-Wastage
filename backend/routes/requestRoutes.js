@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Request = require('../models/Request');
+const User = require('../models/User'); // ✅ Make sure this is at the top if not already
 
 const router = express.Router();
 
@@ -13,7 +14,6 @@ router.post('/', async (req, res) => {
       foodItem,
       foodType,
       quantity,
-      location,
       urgency,
       receiver,
       preferredDate,
@@ -23,31 +23,52 @@ router.post('/', async (req, res) => {
 
     console.log('📦 New request received:', req.body);
 
-    if (!foodType || !quantity || !location || !urgency || !receiver) {
+    if (!foodItem || !foodType || !quantity || !urgency || !receiver) {
       return res.status(400).json({
         error: 'Missing required fields.',
         missingFields: {
           foodItem: !!foodItem,
           foodType: !!foodType,
           quantity: !!quantity,
-          location: !!location,
           urgency: !!urgency,
           receiver: !!receiver
         }
       });
     }
 
+    // 🧠 Fetch NGO user to store snapshot of their details
+    const ngoUser = await User.findById(receiver);
+    if (!ngoUser || ngoUser.role !== 'NGOs') {
+      return res.status(400).json({ error: 'Receiver must be a valid NGO' });
+    }
+
+    // ✅ Safely assign location from NGO profile
+    const location = ngoUser.ngoAddress || 'Location not specified';
+
     const newRequest = await Request.create({
       foodItem,
       foodType,
       quantity,
-      location,
       urgency,
       receiver,
+      location,
       preferredDate: preferredDate || null,
       contactNumber: contactNumber || '',
       specialNotes: specialNotes || '',
-      status: 'Pending'
+      status: 'Pending',
+
+      ngoDetails: {
+        name: ngoUser.ngoName,
+        address: ngoUser.ngoAddress,
+        contactNumber: ngoUser.contactNumber,
+        type: ngoUser.ngoType,
+        dailyFoodNeed: ngoUser.dailyFoodNeed,
+        operatingDays: ngoUser.ngoOperatingDays,
+        operatingHours: {
+          start: ngoUser.ngoStartTime,
+          end: ngoUser.ngoEndTime
+        }
+      }
     });
 
     res.status(201).json(newRequest);
@@ -181,5 +202,38 @@ router.patch('/:id', async (req, res) => {
     res.status(500).json({ error: 'Server error while updating request' });
   }
 });
+
+
+// ============================
+// ✏️ Mark as Delivered
+// ============================
+router.patch('/mark-delivered/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid request ID' });
+  }
+
+  try {
+    const request = await Request.findById(id).populate('donation');
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+
+    request.status = 'Completed';
+    await request.save();
+
+    // Optional: also mark donation as delivered
+    if (request.donation) {
+      request.donation.status = 'Delivered';
+      request.donation.deliveredAt = new Date();
+      await request.donation.save();
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('❌ Error marking as delivered:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 module.exports = router;

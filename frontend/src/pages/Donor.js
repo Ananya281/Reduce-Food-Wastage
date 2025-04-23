@@ -17,7 +17,8 @@ const Donor = () => {
     foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
     pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
     storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
-    coordinates: { lat: null, lng: null }
+    coordinates: { lat: null, lng: null },
+    ngoRequestId: null // ✅ Add this line
   });
   const [ngoRequests, setNgoRequests] = useState([]);
 
@@ -56,6 +57,7 @@ const [filterStatus, setFilterStatus] = useState('');
         location: req.location || '',
         contactNumber: req.contactNumber || '',
         specialNotes: req.specialNotes || '',
+        ngoRequestId: req._id  // ✅ Add this line
       }));
       toast.info('📝 NGO request prefilled. Please complete the donation form.');
     }
@@ -220,6 +222,7 @@ const [filterStatus, setFilterStatus] = useState('');
         body: JSON.stringify({
           ...formData,
           donor: donorId,
+          ngoRequestId: formData.ngoRequestId || null, // ✅ Add this
           preparedAt: formData.foodPreparedDate,
           availableFrom: formData.donationAvailableDate,
           isRefrigerated: formData.isRefrigerated === 'Yes',
@@ -345,16 +348,16 @@ const [filterStatus, setFilterStatus] = useState('');
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
  {/* Address field + auto location button */}
  <div className="mb-4">
-  <label htmlFor="ngoAddress" className="text-sm font-medium block mb-1">NGO Address/Location</label>
-  <div className="flex items-center gap-2">
-    <input
-      name="ngoAddress"
-      id="ngoAddress"
-      placeholder="NGO Address/Location"
-      value={formData.ngoAddress}
-      className="flex-1 p-3 border rounded"
-      onChange={handleChange}
-    />
+ <label htmlFor="location" className="text-sm font-medium block mb-1">Donor Address/Location</label>
+ <div className="flex items-center gap-2">
+  <input
+  name="location"
+  id="location"
+  placeholder="Donor Address/Location"
+  value={formData.location}
+  className="flex-1 p-3 border rounded"
+  onChange={handleChange}
+/>
     <button
   type="button"
   disabled={isLocating}
