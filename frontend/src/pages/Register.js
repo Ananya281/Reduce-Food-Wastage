@@ -123,6 +123,7 @@ const Register = () => {
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
       localStorage.setItem('userId', data.user._id);
+      localStorage.setItem('userName', data.user.fullName);
       localStorage.setItem('userRole', formData.role);
       showSuccess();
       navigateToDashboard(formData.role);
@@ -155,6 +156,7 @@ const Register = () => {
 
       localStorage.setItem('userId', data.user._id);
       localStorage.setItem('userRole', googleSelectedRole);
+      localStorage.setItem('userName', data.user.fullName);
 
       showSuccess();
       navigateToDashboard(googleSelectedRole);

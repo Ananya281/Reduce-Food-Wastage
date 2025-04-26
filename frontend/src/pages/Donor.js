@@ -527,7 +527,7 @@ const [filterStatus, setFilterStatus] = useState('');
 <div className="mb-4">
   {donation.ngoDetails ? (
     <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
-      🎯 Donated to NGO: {donation.ngoDetails.ngoName || 'NGO'}
+      🎯 Donated to NGO : {donation.ngoDetails.name || 'NGO'}
     </span>
   ) : (
     <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">

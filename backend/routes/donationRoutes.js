@@ -1,8 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Donation = require('../models/Donation');
+const Request = require('../models/Request');   // ✅ Corrected here
 const Feedback = require('../models/Feedback');
-require('../models/Request'); // ✅ ensure Request model is registered
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -24,84 +25,108 @@ router.post('/', async (req, res) => {
       foodPreparedDate, donationAvailableDate, expiryDate,
       pickupStartTime, pickupEndTime, servings, contactNumber,
       storageInstructions, specialNotes, isRefrigerated, coordinates,
-      ngoRequestId // ✅ Add this line
+      ngoRequestId
     } = req.body;
 
+    // 🚨 Print Critical Fields First
+    console.log("🚨 donor:", donor);
+    console.log("🚨 foodItem:", foodItem);
+    console.log("🚨 quantity:", quantity);
+    console.log("🚨 location:", location);
+    console.log("🚨 foodPreparedDate:", foodPreparedDate);
+    console.log("🚨 donationAvailableDate:", donationAvailableDate);
+    console.log("🚨 expiryDate:", expiryDate);
+    console.log("🚨 coordinates:", coordinates);
+
     if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
+      console.log("❌ Required fields missing.");
       return res.status(400).json({ error: 'Required fields are missing' });
+    }
+
+    if (!coordinates || coordinates.lat == null || coordinates.lng == null) {
+      console.log("❌ Coordinates missing.");
+      return res.status(400).json({ error: 'Coordinates missing. Please allow location access.' });
     }
 
     let ngoRequest;
     let ngoDetails = null;
     let donorDetails = null;
     
-    // ✅ If donor is responding to an NGO request
     if (ngoRequestId) {
-      const ngoRequest = await Request.findById(ngoRequestId).populate('receiver'); // receiver is NGO
+      console.log("🔵 Fetching NGO Request:", ngoRequestId);
+      ngoRequest = await Request.findById(ngoRequestId).populate('receiver');
       if (ngoRequest) {
+        console.log("✅ NGO Request found.");
         ngoDetails = {
-          name: ngoRequest.receiver.ngoName,
-          address: ngoRequest.receiver.ngoAddress,
-          type: ngoRequest.receiver.ngoType,
-          contactEmail: ngoRequest.receiver.email
+          name: ngoRequest.receiver?.ngoName || '',
+          address: ngoRequest.receiver?.ngoAddress || '',
+          type: ngoRequest.receiver?.ngoType || '',
+          contactEmail: ngoRequest.receiver?.email || ''
         };
+      } else {
+        console.log("⚠️ NGO Request not found for ID:", ngoRequestId);
       }
     }
-    
-    // ✅ Now fetch Donor user
-    const donorUser = await mongoose.model('User').findById(donor);
-    
+
+    console.log("🔵 Fetching Donor User:", donor);
+    const donorUser = await User.findById(donor);
     if (donorUser) {
+      console.log("✅ Donor User found.");
       donorDetails = {
         donorName: donorUser.fullName || '',
         donorEmail: donorUser.email || '',
         donorContactNumber: donorUser.contactNumber || ''
       };
+    } else {
+      console.log("⚠️ Donor User not found for ID:", donor);
     }
-    
 
-// ✅ Now create donation FIRST
-const donation = await Donation.create({
-  donor,
-  foodItem,
-  foodType,
-  quantity,
-  packaging,
-  location,
-  preparedAt: foodPreparedDate,
-  availableFrom: donationAvailableDate,
-  expiryDate,
-  pickupStartTime,
-  pickupEndTime,
-  servings,
-  contactNumber,
-  storageInstructions,
-  specialNotes,
-  isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
-  coordinates,
-  ngoRequest: ngoRequestId || null,
-  ngoDetails: ngoDetails || null,       // ✅ Save fetched NGO details
-  donorDetails: donorDetails || null    // ✅ Save fetched Donor details
-});
+    console.log("🚀 Ready to create Donation...");
 
+    const donation = await Donation.create({
+      donor,
+      foodItem,
+      foodType,
+      quantity,
+      packaging,
+      location,
+      preparedAt: new Date(foodPreparedDate),
+      availableFrom: new Date(donationAvailableDate),
+      expiryDate: new Date(expiryDate),
+      pickupStartTime,
+      pickupEndTime,
+      servings,
+      contactNumber,
+      storageInstructions,
+      specialNotes,
+      isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
+      coordinates: {
+        lat: coordinates.lat,
+        lng: coordinates.lng
+      },
+      ngoRequest: ngoRequestId || null,
+      ngoDetails: ngoDetails || null,
+      donorDetails: donorDetails || null
+    });
 
-// ✅ THEN update NGO request status and link donation
-if (ngoRequest) {
-  ngoRequest.status = 'Accepted';
-  ngoRequest.donation = donation._id;
-  await ngoRequest.save();
-}
+    console.log("✅ Donation created successfully:", donation._id);
 
-    console.log('🔍 ngoRequestId:', ngoRequestId);
-console.log('📌 ngoDetails from request:', ngoDetails);
+    if (ngoRequest) {
+      console.log("🔵 Updating NGO Request with Donation ID...");
+      ngoRequest.status = 'Accepted';
+      ngoRequest.donation = donation._id;
+      await ngoRequest.save();
+      console.log("✅ NGO Request updated.");
+    }
 
-    console.log('✅ Donation successfully created:', donation._id);
     res.status(201).json(donation);
+
   } catch (err) {
-    console.error('❌ Error creating donation:', err);
+    console.error('❌ Exception occurred:', err);
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
+
 
 // ============================
 // 🌍 Reverse Geocoding via OpenStreetMap

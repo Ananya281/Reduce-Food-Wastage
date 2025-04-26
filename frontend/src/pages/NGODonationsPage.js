@@ -30,18 +30,18 @@ const NGODonationsPage = () => {
     }
   };
 
-  
-  const handleAcceptPickup = async (donationId, ngoDetails) => {
+  const handleAcceptPickup = async (donation, ngoDetails) => {
     try {
       const volunteerId = localStorage.getItem('userId');
+      const volunteerName = localStorage.getItem('userName');  // ✅ Add this line
       if (!volunteerId) {
         toast.error('❌ Please login again');
         return;
       }
       
-      setLoadingDonationId(donationId);
+      setLoadingDonationId(donation._id);
   
-      const res = await fetch(`${BACKEND_URL}/api/volunteers/accept/${donationId}`, {
+      const res = await fetch(`${BACKEND_URL}/api/volunteers/accept/${donation._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volunteer: volunteerId })
@@ -53,20 +53,21 @@ const NGODonationsPage = () => {
         toast.success('✅ Pickup accepted successfully!');
         
         setDonations(prev =>
-          prev.map(d => d._id === donationId ? { ...d, status: 'Picked' } : d)
+          prev.map(d => d._id === donation._id ? { ...d, status: 'Picked' } : d)
         );
-  
+        console.log('NGO Details before sending email:', ngoDetails);
         if (ngoDetails?.email) {
           const emailRes = await fetch(`${BACKEND_URL}/api/email/notify-ngo`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ngoEmail: ngoDetails.email,
-              ngoName: ngoDetails.ngoName,
-              foodItem: data.foodItem,
-              volunteerId
+              ngoName: ngoDetails.fullName,
+              foodItem: donation.foodItem,  // 🔥 corrected
+              volunteerId,
+              volunteerName
             })
-          });
+          });        
   
           if (emailRes.ok) {
             toast.success('📩 Email successfully sent to NGO!');
@@ -224,7 +225,7 @@ const NGODonationsPage = () => {
                     </div>
                   ) : (
                     <button
-                      onClick={() => handleAcceptPickup(donation._id, donation.ngoRequest.receiver)}
+onClick={() => handleAcceptPickup(donation, donation.ngoRequest.receiver)}
                       disabled={loadingDonationId === donation._id}
                       className="mt-3 px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 flex justify-center items-center gap-2"
                     >
