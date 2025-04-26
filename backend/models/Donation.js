@@ -82,6 +82,10 @@ const donationSchema = new mongoose.Schema({
     type: Object,
     default: null
   },
+  donorDetails: {
+  type: Object,
+  default: null
+},
   status: {
     type: String,
     enum: ['Available', 'Picked', 'Delivered'],

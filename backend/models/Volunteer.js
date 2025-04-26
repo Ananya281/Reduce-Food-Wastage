@@ -1,89 +1,30 @@
 const mongoose = require('mongoose');
 
 const volunteerSchema = new mongoose.Schema({
-  user: {
+  user: { // one-to-one
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true // one-to-one mapping with User
+    unique: true
   },
 
-  contactNumber: {
-    type: String,
-    required: true,
-    match: /^\d{10}$/, // ensures 10-digit mobile number
-    trim: true
+  contactNumber: { type: String, match: /^\d{10}$/, required: true },
+  currentLocation: { type: String },
+  coordinates: { // 📍 for future features
+    lat: Number,
+    lng: Number
   },
+  vehicleAvailable: { type: Boolean, default: false },
 
-  currentLocation: {
-    type: String,
-    trim: true,
-    required: true
-  },
+  availableStartTime: { type: String },
+  availableEndTime: { type: String },
+  availability: { type: Boolean, default: true },
 
-  locationCoordinates: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point'
-    },
-    coordinates: {
-      type: [Number], // [longitude, latitude]
-      required: true
-    }
-  },
+  totalPickupsCompleted: { type: Number, default: 0 },
+  averageRating: { type: Number, min: 0, max: 5, default: 0 },
 
-  vehicleAvailable: {
-    type: String,
-    enum: ['Yes', 'No'],
-    required: true
-  },
-
-  availableStartTime: {
-    type: String,
-    required: true
-  },
-
-  availableEndTime: {
-    type: String,
-    required: true
-  },
-
-  availability: {
-    type: Boolean,
-    default: true
-  },
-
-  totalPickupsCompleted: {
-    type: Number,
-    default: 0
-  },
-
-  rating: {
-    type: Number,
-    min: 0,
-    max: 5,
-    default: 0
-  },
-
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-// 📍 Geo-index for location-based filtering
-volunteerSchema.index({ locationCoordinates: '2dsphere' });
-
-// 🕒 Auto-update `updatedAt`
-volunteerSchema.pre('save', function (next) {
-  this.updatedAt = Date.now();
-  next();
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Volunteer', volunteerSchema);

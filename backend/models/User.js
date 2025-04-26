@@ -21,17 +21,9 @@ const userSchema = new mongoose.Schema({
   },
 
   password: {
-    type: String,
-    required: function () {
-      return !this.googleId;
-    },
-    minlength: [8, 'Password must be at least 8 characters'],
-    match: [
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
-      'Password must include uppercase, lowercase, number, and special character'
-    ],
-    select: false,
-  },
+  type: String,
+  required: true
+},
 
   role: {
     type: String,
@@ -47,13 +39,14 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
 
-  contactNumber: {
-    type: String,
-    trim: true,
-    required: function () {
-      return this.role === 'Volunteer' || this.role === 'NGOs';
-    },
+contactNumber: {
+  type: String,
+  trim: true,
+  required: function () {
+    return this.role === 'Volunteer' || this.role === 'NGOs' || this.role === 'Donor';
   },
+  match: [/^\d{10}$/, 'Contact number must be a valid 10-digit mobile number']
+},
 
   // Fields specific to NGOs only
   ngoRegNumber: {

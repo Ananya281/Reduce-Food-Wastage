@@ -15,13 +15,14 @@ const Donor = () => {
   const [formData, setFormData] = useState({
     foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
     foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
-    pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
+    pickupStartTime: '', pickupEndTime: '', servings: '',
     storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
     coordinates: { lat: null, lng: null },
     ngoRequestId: null // ✅ Add this line
   });
   const [ngoRequests, setNgoRequests] = useState([]);
 
+  const [sortBy, setSortBy] = useState('createdAt'); // default sort by createdAt
 
   const [isLocating, setIsLocating] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
@@ -238,7 +239,8 @@ const [filterStatus, setFilterStatus] = useState('');
         setFormData({
           foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
-          pickupStartTime: '', pickupEndTime: '', servings: '', contactNumber: '',
+          pickupStartTime: '', pickupEndTime: '', 
+          servings: '',
           storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
           coordinates: { lat: null, lng: null }
         });
@@ -397,7 +399,6 @@ const [filterStatus, setFilterStatus] = useState('');
               ))}
 
             <input name="servings" value={formData.servings} onChange={handleChange} placeholder="Servings (e.g., 20 people)" className="p-3 border rounded" />
-            <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Contact Number" className="p-3 border rounded" />
             <textarea name="storageInstructions" value={formData.storageInstructions} onChange={handleChange} placeholder="Storage Instructions" rows="3" className="p-3 border rounded col-span-1 md:col-span-2" />
             <textarea name="specialNotes" value={formData.specialNotes} onChange={handleChange} placeholder="Allergens / Special Notes" rows="2" className="p-3 border rounded col-span-1 md:col-span-2" />
 
@@ -452,7 +453,38 @@ const [filterStatus, setFilterStatus] = useState('');
     <option value="newest">Newest First</option>
     <option value="oldest">Oldest First</option>
   </select>
+  <select
+  value={sortBy}
+  onChange={(e) => setSortBy(e.target.value)}
+  className="p-2 border rounded"
+>
+  <option value="createdAt">Sort by Created Date</option>
+  <option value="expiryDate">Sort by Expiry Date</option>
+</select>
+</div>{/* Dashboard Summary Cards */}
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div className="bg-blue-100 p-5 rounded-xl shadow text-center">
+    <h3 className="text-2xl font-bold text-blue-700">{donations.length}</h3>
+    <p className="text-sm text-gray-600 mt-2">Total Donations</p>
+  </div>
+  <div className="bg-yellow-100 p-5 rounded-xl shadow text-center">
+    <h3 className="text-2xl font-bold text-yellow-700">
+      {donations.filter(d => d.status === 'Available' || d.status === 'Picked').length}
+    </h3>
+    <p className="text-sm text-gray-600 mt-2">Ongoing Donations</p>
+  </div>
+  <div className="bg-green-100 p-5 rounded-xl shadow text-center">
+    <h3 className="text-2xl font-bold text-green-700">
+      {donations.filter(d => d.status === 'Delivered').length}
+    </h3>
+    <p className="text-sm text-gray-600 mt-2">Completed Donations</p>
+  </div>
+  <div className="bg-purple-100 p-5 rounded-xl shadow text-center">
+    <h3 className="text-2xl font-bold text-purple-700">{ngoRequests.length}</h3>
+    <p className="text-sm text-gray-600 mt-2">Pending NGO Requests</p>
+  </div>
 </div>
+
         {/* My Donations */}
   <h2 className="text-2xl font-bold text-green-700 mb-4">My Donations</h2>
 
@@ -466,53 +498,106 @@ const [filterStatus, setFilterStatus] = useState('');
     (!filterType || donation.foodType === filterType)
   )
   .sort((a, b) => {
-    const dateA = new Date(a.expiryDate);
-    const dateB = new Date(b.expiryDate);
-    return searchText === 'oldest' ? dateA - dateB : dateB - dateA;
-  })
+  const dateA = new Date(sortBy === 'createdAt' ? a.createdAt : a.expiryDate);
+  const dateB = new Date(sortBy === 'createdAt' ? b.createdAt : b.expiryDate);
+  return searchText === 'oldest' ? dateA - dateB : dateB - dateA;
+})
   .map((donation) => (
-              <div key={donation._id} className="relative bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition">
-                {donation?.status === 'Available' && (
-                  <div className="absolute top-3 right-3 flex space-x-3">
-                    <FaEdit
-                      onClick={() => handleEdit(donation)}
-                      className="text-yellow-500 hover:text-yellow-600 cursor-pointer"
-                      title="Edit"
-                      size={18}
-                    />
-                    <FaTrash
-                      onClick={() => handleDelete(donation._id)}
-                      className="text-red-600 hover:text-red-700 cursor-pointer"
-                      title="Delete"
-                      size={18}
-                    />
-                  </div>
-                )}
-                <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2">
-                  <FaUtensils /> {donation.foodItem || 'Not Provided'}
-                </h3>
-                <p className="text-gray-700 flex items-center gap-2"><FaClipboardCheck /> Quantity: {donation.quantity}</p>
-                {donation.foodType && <p className="text-gray-700 flex items-center gap-2"><FaBoxes /> Food Type: {donation.foodType}</p>}
-                {donation.packaging && <p className="text-gray-700 flex items-center gap-2"><FaArchive /> Packaging: {donation.packaging}</p>}
-                <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {donation.location}</p>
-                <p className="text-gray-700 flex items-center gap-2"><FaCalendarAlt /> Expiry: {new Date(donation.expiryDate).toLocaleString()}</p>
-                {donation.pickupStartTime && donation.pickupEndTime && <p className="text-gray-700">Pickup Time: {donation.pickupStartTime} - {donation.pickupEndTime}</p>}
-                {donation.servings && <p className="text-gray-700">Servings: {donation.servings}</p>}
-                {donation.contactNumber && <p className="text-gray-700 flex items-center gap-2"><FaPhone /> Contact: {donation.contactNumber}</p>}
-                {donation.storageInstructions && <p className="text-gray-600 mt-2 flex items-center gap-2"><FaInfoCircle /> {donation.storageInstructions}</p>}
-                {donation.specialNotes && <p className="text-gray-600">Notes: {donation.specialNotes}</p>}
-                <p className="text-gray-600">Refrigerated: {donation.isRefrigerated ? 'Yes' : 'No'}</p>
-                <p className="text-gray-600 mt-2"><strong>Status:</strong> {donation.status}</p>
+    <div key={donation._id} className="relative bg-white p-5 rounded-2xl shadow-md hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 ease-in-out border border-gray-200">
 
+{/* Edit/Delete Icons */}
+{donation?.status === 'Available' && (
+  <div className="absolute top-3 right-3 flex space-x-3">
+    <FaEdit
+      onClick={() => handleEdit(donation)}
+      className="text-yellow-500 hover:text-yellow-600 cursor-pointer"
+      title="Edit"
+      size={18}
+    />
+    <FaTrash
+      onClick={() => handleDelete(donation._id)}
+      className="text-red-600 hover:text-red-700 cursor-pointer"
+      title="Delete"
+      size={18}
+    />
+  </div>
+)}
+
+{/* Top Badge */}
+<div className="mb-4">
+  {donation.ngoDetails ? (
+    <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
+      🎯 Donated to NGO: {donation.ngoDetails.ngoName || 'NGO'}
+    </span>
+  ) : (
+    <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+      🍱 General Donation
+    </span>
+  )}
+</div>
+
+{/* Food Item */}
+<h3 className="text-xl md:text-2xl font-bold text-green-700 mb-2 flex items-center gap-2">
+  <FaUtensils /> {donation.foodItem || 'Not Provided'}
+</h3>
+
+{/* Main Details */}
+<div className="space-y-2 text-gray-700 text-sm md:text-base">
+  <p><FaClipboardCheck className="inline-block mr-2" /> <strong>Quantity:</strong> {donation.quantity}</p>
+  {donation.foodType && (
+    <p><FaBoxes className="inline-block mr-2" /> <strong>Food Type:</strong> {donation.foodType}</p>
+  )}
+  {donation.packaging && (
+    <p><FaArchive className="inline-block mr-2" /> <strong>Packaging:</strong> {donation.packaging}</p>
+  )}
+  <p><FaMapMarkerAlt className="inline-block mr-2" /> <strong>Location:</strong> {donation.location}</p>
+  <p><FaCalendarAlt className="inline-block mr-2" /> <strong>Expiry:</strong> {new Date(donation.expiryDate).toLocaleString()}</p>
+
+  {donation.pickupStartTime && donation.pickupEndTime && (
+    <p><strong>Pickup Time:</strong> {donation.pickupStartTime} - {donation.pickupEndTime}</p>
+  )}
+
+  {donation.servings && (
+    <p><strong>Servings:</strong> {donation.servings}</p>
+  )}
+
+  {donation.storageInstructions && (
+    <p><FaInfoCircle className="inline-block mr-2" /> <strong>Storage:</strong> {donation.storageInstructions}</p>
+  )}
+
+  {donation.specialNotes && (
+    <p><strong>Notes:</strong> {donation.specialNotes}</p>
+  )}
+
+  <p><strong>Refrigerated:</strong> {donation.isRefrigerated ? 'Yes' : 'No'}</p>
+
+  {/* Status */}
+  <p className="mt-2"><strong>Status:</strong> 
+  <span className={`ml-2 inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+    donation.status === 'Available'
+      ? 'bg-green-100 text-green-700'
+      : donation.status === 'Picked'
+      ? 'bg-yellow-100 text-yellow-700'
+      : 'bg-blue-100 text-blue-700'
+  }`}>
+    {donation.status}
+  </span>
+</p>
+
+</div>
+
+{/* Donate Again Button */}
 {donation.status !== 'Available' && (
   <button
     onClick={() => handleDonateAgain(donation)}
-    className="mt-3 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium rounded transition"
+    className="mt-4 px-4 py-2 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded transition"
   >
     ♻️ Donate Again
   </button>
 )}
-              </div>
+
+</div>
+
             ))}
           </div>
         )}

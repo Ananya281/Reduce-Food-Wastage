@@ -31,14 +31,34 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
-    let ngoDetails;
     let ngoRequest;
-    if (ngoRequestId && mongoose.Types.ObjectId.isValid(ngoRequestId)) {
-      ngoRequest = await mongoose.model('Request').findById(ngoRequestId);
+    let ngoDetails = null;
+    let donorDetails = null;
+    
+    // ✅ If donor is responding to an NGO request
+    if (ngoRequestId) {
+      const ngoRequest = await Request.findById(ngoRequestId).populate('receiver'); // receiver is NGO
       if (ngoRequest) {
-        ngoDetails = ngoRequest.ngoDetails;
+        ngoDetails = {
+          name: ngoRequest.receiver.ngoName,
+          address: ngoRequest.receiver.ngoAddress,
+          type: ngoRequest.receiver.ngoType,
+          contactEmail: ngoRequest.receiver.email
+        };
       }
     }
+    
+    // ✅ Now fetch Donor user
+    const donorUser = await mongoose.model('User').findById(donor);
+    
+    if (donorUser) {
+      donorDetails = {
+        donorName: donorUser.fullName || '',
+        donorEmail: donorUser.email || '',
+        donorContactNumber: donorUser.contactNumber || ''
+      };
+    }
+    
 
 // ✅ Now create donation FIRST
 const donation = await Donation.create({
@@ -60,7 +80,8 @@ const donation = await Donation.create({
   isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
   coordinates,
   ngoRequest: ngoRequestId || null,
-  ngoDetails: ngoDetails || null
+  ngoDetails: ngoDetails || null,       // ✅ Save fetched NGO details
+  donorDetails: donorDetails || null    // ✅ Save fetched Donor details
 });
 
 
@@ -176,18 +197,26 @@ router.delete('/:donationId', async (req, res) => {
 });
 
 // ============================
-// 📥 Get All Donations (optional filter by status)
+// 📥 Get All Donations (with ngoRequest details)
 // ============================
 router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
     const query = status ? { status } : {};
-    const donations = await Donation.find(query).populate('donor');
+
+    const donations = await Donation.find(query)
+      .populate('donor')
+      .populate({
+        path: 'ngoRequest',
+        populate: { path: 'receiver' }
+      });
+
     res.status(200).json(donations);
   } catch (err) {
     res.status(500).json({ error: 'Server error while fetching donations' });
   }
 });
+
 
 // ============================
 // 📥 Get Donations by Donor ID

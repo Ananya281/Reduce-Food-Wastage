@@ -17,7 +17,6 @@ router.post('/', async (req, res) => {
       urgency,
       receiver,
       preferredDate,
-      contactNumber,
       specialNotes
     } = req.body;
 
@@ -53,7 +52,6 @@ router.post('/', async (req, res) => {
       receiver,
       location,
       preferredDate: preferredDate || null,
-      contactNumber: contactNumber || '',
       specialNotes: specialNotes || '',
       status: 'Pending',
 
@@ -92,8 +90,8 @@ router.get('/', async (req, res) => {
     }
 
     const requests = await Request.find(filter)
-      .populate('receiver', 'fullName email role')
-      .populate('donation', 'foodItem quantity location status')
+    .populate('receiver', 'ngoName ngoType contactNumber')
+    .populate('donation', 'foodItem quantity location status')
       .sort({ requestedAt: -1 })
       .lean();
 
@@ -185,7 +183,6 @@ router.patch('/:id', async (req, res) => {
       location: req.body.location,
       urgency: req.body.urgency,
       preferredDate: req.body.preferredDate || null,
-      contactNumber: req.body.contactNumber || '',
       specialNotes: req.body.specialNotes || '',
       receiver: req.body.receiver
     };

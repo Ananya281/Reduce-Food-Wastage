@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck, FaPhone, FaFlag
-} from 'react-icons/fa';
+  FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck, FaPhone, FaFlag, FaBuilding
+} from 'react-icons/fa'; // 🔥 Added FaBuilding for NGO icons
 
 const NGORequests = () => {
   const [ngoRequests, setNgoRequests] = useState([]);
@@ -46,6 +46,7 @@ const NGORequests = () => {
 
         <h1 className="text-4xl font-bold text-green-700 mb-6">Pending NGO Food Requests</h1>
 
+        {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <select
             value={urgencyFilterTemp}
@@ -109,10 +110,25 @@ const NGORequests = () => {
               })
               .map((req) => (
                 <div key={req._id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-200">
-                <div className="mb-3 flex items-center gap-2 text-green-700 text-xl font-semibold">
-  <FaUtensils /> {req.foodItem ? `${req.foodItem} (${req.foodType})` : `Requested: ${req.foodType || 'N/A'}`}
-</div>
+                  <div className="mb-3 flex items-center gap-2 text-green-700 text-xl font-semibold">
+                    <FaUtensils /> {req.foodItem ? `${req.foodItem} (${req.foodType})` : `Requested: ${req.foodType || 'N/A'}`}
+                  </div>
 
+                  {/* 🚀 NGO Details block */}
+                  {req.receiver && (
+                    <div className="text-gray-700 mb-2">
+                      <p className="flex items-center gap-2">
+                        <FaBuilding className="text-gray-500" />
+                        <span><strong>NGO Name:</strong> {req.receiver.ngoName}</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <FaFlag className="text-gray-500" />
+                        <span><strong>NGO Type:</strong> {req.receiver.ngoType}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Other basic details */}
                   <div className="text-gray-700 space-y-1">
                     <p className="flex items-center gap-2"><FaClipboardCheck className="text-gray-500" /> <span className="font-medium">Quantity:</span> {req.quantity}</p>
                     <p className="flex items-center gap-2"><FaFlag className="text-gray-500" /> <span className="font-medium">Urgency:</span> {req.urgency}</p>
@@ -128,6 +144,7 @@ const NGORequests = () => {
                     )}
                   </div>
 
+                  {/* Footer button */}
                   <div className="flex items-center justify-between mt-4">
                     <span className="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 font-medium">
                       {req.status}

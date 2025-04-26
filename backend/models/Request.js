@@ -31,11 +31,6 @@ foodType: {
     type: Date,
     default: null
   },
-  contactNumber: {
-    type: String,
-    match: /^[6-9]\d{9}$/, // Optional: basic validation for Indian mobile format
-    default: ''
-  },
   specialNotes: {
     type: String,
     trim: true,

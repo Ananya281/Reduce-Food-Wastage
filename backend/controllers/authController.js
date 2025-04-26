@@ -50,6 +50,10 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
+    if (!/^\d{10}$/.test(contactNumber)) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit contact number' });
+    }    
+
     if (role === 'NGOs') {
       if (
         !ngoRegNumber || !ngoType || !dailyFoodNeed ||

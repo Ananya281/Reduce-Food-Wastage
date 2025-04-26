@@ -45,6 +45,7 @@ app.use('/api/donations', require('./routes/donationRoutes'));
 app.use('/api/requests', require('./routes/requestRoutes'));
 app.use('/api/volunteers', require('./routes/volunteerRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
+app.use('/api/email', require('./routes/emailRoutes'));
 
 // ✅ Serve frontend (optional production)
 if (process.env.NODE_ENV === 'production') {

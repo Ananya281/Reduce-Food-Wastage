@@ -87,36 +87,30 @@ const Register = () => {
   };
 
   const validatePassword = (password) => {
-    const regex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
+    const regex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
     return regex.test(password);
-  };
+  };  
 
   const handleRegister = async () => {
     const { fullName, email, password, contactNumber, role } = formData;
-
     if (!fullName || !email || !password || !role) return showError("Fill all basic fields");
-
-    if (!validatePassword(password)) {
-      return showError("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
-    }
-
-    if (role !== 'Donor') {
-      if (!contactNumber) return showError("Contact number is required");
-      if (role === 'NGOs') {
-        if (
-          !formData.ngoRegNumber ||
-          !formData.ngoType ||
-          !formData.dailyFoodNeed ||
-          !formData.ngoName ||
-          !formData.ngoAddress ||
-          !formData.ngoOperatingDays.length ||
-          !formData.ngoStartTime ||
-          !formData.ngoEndTime
-        ) {
-          return showError("Please fill all required NGO details");
-        }
-      }      
-    }
+    if (!validatePassword(password)) return showError("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+    if (!contactNumber) return showError("Contact number is required");
+    
+    if (role === 'NGOs') {
+      if (
+        !formData.ngoRegNumber ||
+        !formData.ngoType ||
+        !formData.dailyFoodNeed ||
+        !formData.ngoName ||
+        !formData.ngoAddress ||
+        !formData.ngoOperatingDays.length ||
+        !formData.ngoStartTime ||
+        !formData.ngoEndTime
+      ) {
+        return showError("Please fill all required NGO details");
+      }
+    }  
 
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
@@ -194,11 +188,9 @@ const Register = () => {
           <input name="fullName" type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
           <input name="email" type="email" placeholder="Email" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
           <input name="password" type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-
+          <input name="contactNumber" type="tel" placeholder="Contact Number" value={formData.contactNumber} className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
           {formData.role !== 'Donor' && (
             <>
-              <input name="contactNumber" type="tel" placeholder="Contact Number" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-
               {formData.role === 'NGOs' && (
                 <>
                   <input name="ngoName" placeholder="NGO Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />

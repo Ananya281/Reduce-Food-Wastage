@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); // ✅ ADD THIS LINE
 
 const pickupSchema = new mongoose.Schema({
   volunteer: {
@@ -14,6 +14,13 @@ const pickupSchema = new mongoose.Schema({
   acceptedAt: {
     type: Date,
     default: Date.now
+  },
+  deliveredAt: {
+    type: Date
+  },
+  feedback: {
+    type: String,
+    trim: true
   }
 });
 

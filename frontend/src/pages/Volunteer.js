@@ -291,12 +291,25 @@ const Volunteer = () => {
           ))}
         </MapContainer>
         <div className="text-right mt-2">
+        
+        <div className="text-right mt-2 flex justify-end gap-4">
+  <button
+    onClick={() => navigate('/volunteer/ngodonations')}
+    className="text-green-600 hover:underline text-sm"
+  >
+    🎯 View NGO Request Donations
+  </button>
+
   <button
     onClick={() => navigate('/volunteer/alldonations')}
     className="text-blue-600 hover:underline text-sm"
   >
     📋 View All Donations
   </button>
+  <button onClick={() => navigate('/volunteer/expired-donations')}>
+  🛑 View Expired Donations
+</button>
+</div>
 </div>
 
         {/* My Pickups Section */}

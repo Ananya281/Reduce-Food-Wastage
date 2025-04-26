@@ -15,7 +15,6 @@ const NGO = () => {
     quantity: '',
     urgency: 'Normal',
     preferredDate: '',
-    contactNumber: '',
     specialNotes: ''
   });
   
@@ -114,7 +113,6 @@ const [sortOrder, setSortOrder] = useState('newest');
         quantity: '',
         urgency: 'Normal',
         preferredDate: '',
-        contactNumber: '',
         specialNotes: ''
       });
       setIsEditing(false);
@@ -149,11 +147,11 @@ const [sortOrder, setSortOrder] = useState('newest');
 
   const handleEdit = (req) => {
     setFormData({
+      foodItem: req.foodItem,
       foodType: req.foodType,
       quantity: req.quantity,
       urgency: req.urgency,
       preferredDate: req.preferredDate?.split('T')[0] || '',
-      contactNumber: req.contactNumber,
       specialNotes: req.specialNotes
     });
     setEditRequestId(req._id);
@@ -162,11 +160,11 @@ const [sortOrder, setSortOrder] = useState('newest');
 
   const handleClone = (req) => {
     setFormData({
+      foodItem: req.foodItem,
       foodType: req.foodType,
       quantity: req.quantity,
       urgency: req.urgency,
       preferredDate: '',
-      contactNumber: req.contactNumber,
       specialNotes: req.specialNotes
     });
     setIsEditing(false);
@@ -245,7 +243,6 @@ const [sortOrder, setSortOrder] = useState('newest');
               <option value="Urgent">Urgent</option>
             </select>
             <input name="preferredDate" type="date" value={formData.preferredDate} onChange={handleChange} className="p-3 border rounded" />
-            <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Contact Number" className="p-3 border rounded" />
             <textarea name="specialNotes" value={formData.specialNotes} onChange={handleChange} placeholder="Special Notes" className="p-3 border rounded md:col-span-2" rows={3} />
             <button type="submit" className="bg-green-600 text-white py-3 rounded col-span-1 md:col-span-2 hover:bg-green-700">
               {isEditing ? 'Update Request' : 'Submit Request'}
@@ -307,50 +304,60 @@ const [sortOrder, setSortOrder] = useState('newest');
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredRequests.map((req) => (
-            <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-xl font-semibold text-green-700 mb-2 flex items-center gap-2"><FaBoxOpen /> {req.foodType || 'N/A'}</h3>
-                  {req.status === 'Pending' && (
-                    <div className="flex gap-3">
-                      <button onClick={() => handleEdit(req)} className="text-blue-600 hover:text-blue-800" title="Edit Request">✏️</button>
-                      <button onClick={() => handleDelete(req._id)} className="text-red-600 hover:text-red-800" title="Cancel Request">
-                        <FaTrash />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-700 flex items-center gap-2"><FaClock /> Quantity: {req.quantity}</p>
-                <p className="text-gray-700 flex items-center gap-2"><FaFlag /> Urgency: {req.urgency}</p>
-                {req.ngoDetails?.address && (
-  <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>
-)}
-{req.ngoDetails?.name && (
-  <p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>
-)}
-                {req.preferredDate && <p className="text-gray-700">Preferred: {new Date(req.preferredDate).toLocaleDateString()}</p>}
-                {req.contactNumber && <p className="text-gray-700">Contact: {req.contactNumber}</p>}
-                {req.specialNotes && <p className="text-gray-500 italic">Note: {req.specialNotes}</p>}
-                <span className={`inline-block px-3 py-1 rounded-full text-white text-sm mt-2 ${
-                  req.status === 'Pending' ? 'bg-blue-500' :
-                  req.status === 'Picked' ? 'bg-yellow-500' :
-                  req.status === 'Delivered' ? 'bg-green-600' : 'bg-gray-400'
-                }`}>
-                  {req.status}
-                </span>
-                {/* ✅ Add this below the status badge */}
-                {req.status === 'Accepted' && (
-                  <button
-                    onClick={() => markAsDelivered(req._id)}
-                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                  >
-                    ✅ Mark as Delivered
-                  </button>
-                )}
-                <button onClick={() => handleClone(req)} className="text-green-600 hover:text-green-800 mt-2 text-sm">
-                  🔁 Request Again
-                </button>
-              </div>
-            ))}
+  <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+    
+    {/* Header + food info */}
+    <div className="text-gray-700 space-y-1 mb-2">
+      <div className="flex items-center gap-2 text-xl font-semibold text-green-700">
+        <FaBoxOpen /> {req.foodType || 'N/A'}
+      </div>
+      <p className="flex items-center gap-2">🍽️ <span className="font-medium">Food Item:</span> {req.foodItem}</p>
+      <p className="flex items-center gap-2">🕒 <span className="font-medium">Quantity:</span> {req.quantity}</p>
+      <p className={`flex items-center gap-2 ${req.urgency === 'Urgent' ? 'text-red-600 font-semibold' : ''}`}>
+        🚩 <span className="font-medium">Urgency:</span> {req.urgency}
+      </p>
+      {req.preferredDate && (
+        <p className="flex items-center gap-2">📅 <span className="font-medium">Preferred:</span> {new Date(req.preferredDate).toLocaleDateString()}</p>
+      )}
+      {req.specialNotes && (
+        <p className="flex items-start gap-2 text-gray-500 italic">📝 {req.specialNotes}</p>
+      )}
+    </div>
+
+    {/* Optional NGO details */}
+    {req.ngoDetails?.address && (
+      <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>
+    )}
+    {req.ngoDetails?.name && (
+      <p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>
+    )}
+
+    {/* Status Badge */}
+    <span className={`inline-block px-3 py-1 rounded-full text-white text-sm mt-3 ${
+      req.status === 'Pending' ? 'bg-blue-500' :
+      req.status === 'Picked' ? 'bg-yellow-500' :
+      req.status === 'Delivered' ? 'bg-green-600' : 'bg-gray-400'
+    }`}>
+      {req.status}
+    </span>
+
+    {/* Actions */}
+    {req.status === 'Accepted' && (
+      <button
+        onClick={() => markAsDelivered(req._id)}
+        className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+      >
+        ✅ Mark as Delivered
+      </button>
+    )}
+    <button
+      onClick={() => handleClone(req)}
+      className="text-green-600 hover:text-green-800 mt-2 text-sm block"
+    >
+      🔁 Request Again
+    </button>
+  </div>
+))}
           </div>
         )}
       </div>
