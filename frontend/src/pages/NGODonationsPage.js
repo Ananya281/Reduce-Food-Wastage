@@ -65,7 +65,9 @@ const NGODonationsPage = () => {
               ngoName: ngoDetails.fullName,
               foodItem: donation.foodItem,  // 🔥 corrected
               volunteerId,
-              volunteerName
+              volunteerName,
+              donorEmail: donation.donorDetails?.email,
+              donorName: donation.donorDetails?.fullName
             })
           });        
   

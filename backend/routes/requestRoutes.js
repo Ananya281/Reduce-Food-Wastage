@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Request = require('../models/Request');
+const Donation = require('../models/Donation');
 const User = require('../models/User'); // ✅ Make sure this is at the top if not already
+const nodemailer = require('nodemailer');
 
 const router = express.Router();
 
@@ -204,33 +206,86 @@ router.patch('/:id', async (req, res) => {
 // ============================
 // ✏️ Mark as Delivered
 // ============================
-router.patch('/mark-delivered/:id', async (req, res) => {
-  const { id } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid request ID' });
-  }
-
+// ============================
+// ✏️ Mark as Delivered
+// ============================
+router.patch('/mark-delivered/:requestId', async (req, res) => {
   try {
-    const request = await Request.findById(id).populate('donation');
-    if (!request) return res.status(404).json({ error: 'Request not found' });
+    const { requestId } = req.params;
 
-    request.status = 'Completed';
-    await request.save();
+    const request = await Request.findByIdAndUpdate(
+      requestId,
+      { status: 'Completed' },
+      { new: true }
+    );
 
-    // Optional: also mark donation as delivered
-    if (request.donation) {
-      request.donation.status = 'Delivered';
-      request.donation.deliveredAt = new Date();
-      await request.donation.save();
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
     }
 
-    res.status(200).json({ success: true });
+    if (!request.donation) {
+      return res.status(400).json({ error: 'No linked donation found' });
+    }
+
+    const donation = await Donation.findByIdAndUpdate(
+      request.donation,
+      { status: 'Delivered' },
+      { new: true }
+    ).populate('donor').populate('volunteer');  // ✨ FIX here: populate separately
+
+    if (!donation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    // Setup nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS
+      }
+    });
+
+    // Send email to Volunteer
+    if (donation.volunteer?.email) {  // ✅ Check if volunteer exists and has email
+      await transporter.sendMail({
+        from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
+        to: donation.volunteer.email,
+        subject: '🎉 Donation Successfully Delivered!',
+        html: `
+          <h3>Hello ${donation.volunteer.fullName || 'Volunteer'},</h3>
+          <p>Your pickup for <strong>${donation.foodItem}</strong> has been successfully delivered and marked completed by the NGO.</p>
+          <p>Thank you for your contribution! 🚚🎯</p>
+          <br/>
+          <p><i>Reduce Food Waste Team</i></p>
+        `
+      });
+      console.log(`📩 Email sent to Volunteer: ${donation.volunteer.email}`);
+    }
+
+    // Send email to Donor
+    if (donation.donor?.email) {  // ✅ Check if donor exists and has email
+      await transporter.sendMail({
+        from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
+        to: donation.donor.email,
+        subject: '🎉 Your Donation Successfully Delivered!',
+        html: `
+          <h3>Hello ${donation.donor.fullName || 'Donor'},</h3>
+          <p>Your donation of <strong>${donation.foodItem}</strong> has been successfully delivered to the NGO.</p>
+          <p>Thank you for supporting our mission to reduce food waste! 🙌</p>
+          <br/>
+          <p><i>Reduce Food Waste Team</i></p>
+        `
+      });
+      console.log(`📩 Email sent to Donor: ${donation.donor.email}`);
+    }
+
+    res.status(200).json({ success: true, message: 'Request and Donation marked as delivered. Emails sent.' });
+
   } catch (error) {
-    console.error('❌ Error marking as delivered:', error.message);
+    console.error('❌ Error marking delivered:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 module.exports = router;

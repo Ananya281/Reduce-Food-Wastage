@@ -145,32 +145,6 @@ const Volunteer = () => {
       toast.error("❌ Error accepting pickup");
     }
   };
-  const handleMarkDelivered = async (donationId) => {
-    if (!donationId) {
-      toast.error("❌ Invalid donation ID");
-      return;
-    }
-  
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/volunteers/deliver/${donationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' }
-      });
-  
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success("✅ Donation marked as delivered!");
-        fetchVolunteerPickups();
-      } else {
-        toast.error(data.error || "❌ Could not update status");
-      }
-    } catch (err) {
-      toast.error("❌ Network or server error");
-      console.error(err);
-    }
-  };
-  
-  
   
 
   const showRouteToDonation = (donation) => {
@@ -326,18 +300,13 @@ const Volunteer = () => {
                   <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
                   <p className="text-sm text-gray-600">Pickup Time: {pickup.pickupStartTime} - {pickup.pickupEndTime}</p>
                   {pickup.status === 'Delivered' ? (
-  <button className="mt-2 text-sm bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2 cursor-default transition duration-300 ease-in-out">
-    <FaCheckCircle className="text-white" />
+  <span className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
     Delivered
-  </button>
+  </span>
 ) : (
-  <button
-onClick={() => handleMarkDelivered(pickup.donationId?.trim())}
-className="mt-2 text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 flex items-center gap-2 transition duration-300 ease-in-out"
-  >
-    <FaCheckCircle className="text-white" />
-    Mark as Delivered
-  </button>
+  <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+    Picked
+  </span>
 )}
 
                 </div>
