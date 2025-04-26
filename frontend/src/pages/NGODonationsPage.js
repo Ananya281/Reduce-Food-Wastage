@@ -30,6 +30,7 @@ const NGODonationsPage = () => {
     }
   };
 
+  
   const handleAcceptPickup = async (donationId, ngoDetails) => {
     try {
       const volunteerId = localStorage.getItem('userId');
