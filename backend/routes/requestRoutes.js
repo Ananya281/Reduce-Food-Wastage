@@ -57,7 +57,10 @@ router.post('/', async (req, res) => {
       preferredDate: preferredDate || null,
       specialNotes: specialNotes || '',
       status: 'Pending',
-
+      locationCoordinates: {
+        type: 'Point',
+        coordinates: [ngoUser.locationCoordinates.coordinates[0], ngoUser.locationCoordinates.coordinates[1]] // longitude, latitude
+      },
       ngoDetails: {
         name: ngoUser.ngoName,
         address: ngoUser.ngoAddress,
@@ -68,9 +71,13 @@ router.post('/', async (req, res) => {
         operatingHours: {
           start: ngoUser.ngoStartTime,
           end: ngoUser.ngoEndTime
+        },
+        locationCoordinates: {     // ✨ Add this
+          type: 'Point',
+          coordinates: [ngoUser.locationCoordinates.coordinates[0], ngoUser.locationCoordinates.coordinates[1]]
         }
       }
-    });
+    });    
 
     res.status(201).json(newRequest);
   } catch (err) {

@@ -109,6 +109,23 @@ contactNumber: {
     trim: true,
     default: '',
   },
+  locationCoordinates: {
+  type: { 
+    type: String, 
+    enum: ['Point'], 
+    required: function() {
+      return this.role === 'NGOs';
+    },
+    default: 'Point'
+  },
+  coordinates: {
+    type: [Number], // [longitude, latitude]
+    required: function() {
+      return this.role === 'NGOs';
+    }
+  }
+},
+
 
   createdAt: {
     type: Date,

@@ -6,12 +6,12 @@ const requestSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-foodType: {
-  type: String,
-  required: true,
-  trim: true,
-  enum: ['Veg', 'Non-Veg', 'Cooked', 'Canned', 'Packaged', 'Raw', 'Other']
-},
+  foodType: {
+    type: String,
+    required: true,
+    trim: true,
+    enum: ['Veg', 'Non-Veg', 'Cooked', 'Canned', 'Packaged', 'Raw', 'Other']
+  },
   quantity: {
     type: String,
     required: true,
@@ -19,7 +19,6 @@ foodType: {
   },
   location: {
     type: String,
-    required: false,
     trim: true
   },
   urgency: {
@@ -58,18 +57,28 @@ foodType: {
   updatedAt: {
     type: Date
   },
-ngoDetails: {
-  name: { type: String },
-  address: { type: String },
-  contactNumber: { type: String },
-  type: { type: String },
-  dailyFoodNeed: { type: String },
-  operatingDays: [String],
-  operatingHours: {
-    start: { type: String },
-    end: { type: String }
+  ngoDetails: {
+    name: { type: String },
+    address: { type: String },
+    contactNumber: { type: String },
+    type: { type: String },
+    dailyFoodNeed: { type: String },
+    operatingDays: [String],
+    operatingHours: {
+      start: { type: String },
+      end: { type: String }
+    },
+    locationCoordinates: {    // ✨ Added here
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number]  // [longitude, latitude]
+      }
+    }
   }
-}
 });
 
 // 🔁 Automatically update `updatedAt` field on save
