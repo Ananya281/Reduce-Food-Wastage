@@ -153,47 +153,29 @@ const [filterStatus, setFilterStatus] = useState('');
       return;
     }
   
-    setIsLocating(true); // ✅ Start spinner
+    setIsLocating(true);
   
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            {
-              headers: {
-                'User-Agent': 'food-donation-app/1.0',
-                'Accept': 'application/json'
-              }
-            }
-          );
+        console.log("✅ Coordinates Captured:", latitude, longitude);
   
-          if (!res.ok) throw new Error('Failed to fetch address');
+        setFormData(prev => ({
+          ...prev,
+          location: `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`,
+          coordinates: { lat: latitude, lng: longitude }
+        }));
   
-          const data = await res.json();
-          const address = data.display_name || `${latitude}, ${longitude}`;
-  
-          setFormData(prev => ({
-            ...prev,
-            location: address,
-            coordinates: { lat: latitude, lng: longitude }
-          }));
-  
-          toast.success("📍 Location auto-filled!");
-        } catch (error) {
-          toast.error("❌ Failed to auto-fill location.");
-          console.error("Reverse geocoding error:", error);
-        } finally {
-          setIsLocating(false); // ✅ Stop spinner
-        }
+        toast.success("📍 Coordinates Captured Successfully!");
+        setIsLocating(false);
       },
       (error) => {
+        console.error("Location access denied:", error);
         toast.error("❌ Unable to access your location.");
-        setIsLocating(false); // ✅ Stop spinner
+        setIsLocating(false);
       }
     );
-  };
+  };  
   
   
 
