@@ -17,6 +17,8 @@ const NGO = () => {
     preferredDate: '',
     specialNotes: ''
   });
+  const [selectedTab, setSelectedTab] = useState('requests');
+  const [recommendedDonations, setRecommendedDonations] = useState([]);
   
 
   const navigate = useNavigate();
@@ -40,8 +42,24 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
 
+  const fetchRecommendedDonations = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/recommended?ngoId=${receiverId}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRecommendedDonations(data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching volunteer recommended donations:', error);
+      toast.error('Failed to load volunteer recommendations.');
+    }
+  };  
+
   useEffect(() => {
-    if (receiverId) fetchRequests();
+    if (receiverId) {
+      fetchRequests();
+      fetchRecommendedDonations(); // 🔥 Add this line!
+    }
   }, [receiverId]);
 
   const getCurrentLocation = () => {
@@ -171,6 +189,43 @@ const [sortOrder, setSortOrder] = useState('newest');
     setEditRequestId(null);
   };
 
+  const handleAcceptRecommendation = async (donationId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/accept-recommendation/${donationId}`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('✅ Recommendation Accepted!');
+        fetchRecommendedDonations(); // Refresh
+        fetchRequests(); // Optional, refresh requests if needed
+      } else {
+        toast.error(data.error || '❌ Failed to accept recommendation');
+      }
+    } catch (error) {
+      console.error('Error accepting recommendation:', error);
+      toast.error('❌ Server error while accepting');
+    }
+  };
+  
+  const handleRejectRecommendation = async (donationId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/reject-recommendation/${donationId}`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('❌ Recommendation Rejected');
+        fetchRecommendedDonations(); // Refresh
+      } else {
+        toast.error(data.error || '❌ Failed to reject recommendation');
+      }
+    } catch (error) {
+      console.error('Error rejecting recommendation:', error);
+      toast.error('❌ Server error while rejecting');
+    }
+  };  
+
   const filteredRequests = requests
   .filter(req =>
     (!statusFilter || req.status === statusFilter) &&
@@ -250,6 +305,26 @@ const [sortOrder, setSortOrder] = useState('newest');
           </form>
         </div>
         <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex gap-4 mb-8">
+  <button
+    onClick={() => setSelectedTab('requests')}
+    className={`px-4 py-2 rounded-full ${
+      selectedTab === 'requests' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
+    }`}
+  >
+    📋 My Requests
+  </button>
+  <button
+    onClick={() => setSelectedTab('recommendations')}
+    className={`px-4 py-2 rounded-full ${
+      selectedTab === 'recommendations' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
+    }`}
+  >
+    🔔 Volunteer Notifications {recommendedDonations.length > 0 && (
+      <span className="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{recommendedDonations.length}</span>
+    )}
+  </button>
+</div>
   <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
   <select
     value={statusFilter}
@@ -296,13 +371,15 @@ const [sortOrder, setSortOrder] = useState('newest');
 </div>
 
         {/* Request List */}
-        <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
-        {loading ? (
-          <p className="text-gray-500">Loading requests...</p>
-        ) : requests.length === 0 ? (
-          <p className="text-gray-500">No requests found.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+{selectedTab === 'requests' ? (
+  <>
+    <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
+    {loading ? (
+      <p className="text-gray-500">Loading requests...</p>
+    ) : filteredRequests.length === 0 ? (
+      <p className="text-gray-500">No requests found.</p>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredRequests.map((req) => (
   <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
     
@@ -358,8 +435,48 @@ const [sortOrder, setSortOrder] = useState('newest');
     </button>
   </div>
 ))}
+</div>
+    )}
+  </>
+) : (
+  <>
+    <h2 className="text-2xl font-bold text-green-700 mb-4">🔔 Volunteer Recommendations</h2>
+    {loading ? (
+      <p className="text-gray-500">Loading volunteer notifications...</p>
+    ) : recommendedDonations.length === 0 ? (
+      <p className="text-gray-500">No volunteer recommendations pending.</p>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {recommendedDonations.map((donation) => (
+          <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+            <div className="text-gray-700 space-y-1 mb-2">
+              <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
+              <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
+              <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
+            </div>
+            {/* ✅ Move buttons inside here for each donation */}
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => handleAcceptRecommendation(donation._id)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+            >
+              ✅ Accept
+            </button>
+
+            <button
+              onClick={() => handleRejectRecommendation(donation._id)}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm"
+            >
+              ❌ Reject
+            </button>
           </div>
-        )}
+          </div>
+        ))}
+        
+      </div>
+    )}
+  </>
+)}
       </div>
     </div>
   );

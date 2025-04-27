@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const Volunteer = require('../models/Volunteer');
 const Donation = require('../models/Donation');
 const Pickup = require('../models/Pickup');
+const NgoRequest = require('../models/NgoRequest'); // ✅ Import the new model
+
 
 const router = express.Router();
 
@@ -210,5 +212,62 @@ router.patch('/deliver/:donationId', async (req, res) => {
 });
 
 
+/**
+ * ✨ Volunteer recommends an NGO for a donation
+ */
+router.patch('/recommend-ngo/:donationId', async (req, res) => {
+  const { donationId } = req.params;
+  const { ngoId } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(donationId) || !mongoose.Types.ObjectId.isValid(ngoId)) {
+    return res.status(400).json({ error: 'Invalid Donation ID or NGO ID' });
+  }
+
+  try {
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ error: 'Donation not found' });
+
+    // Update donation with selected NGO details
+    donation.ngoDetails = {
+      name: 'Pending NGO Approval',
+      address: '',
+      type: '',
+      contactEmail: '',
+      ngoId: ngoId  // ✅ Save the NGO ID
+    };
+    await donation.save();
+
+    res.status(200).json({ success: true, message: 'NGO recommendation submitted' });
+  } catch (err) {
+    console.error('❌ Error recommending NGO:', err.message);
+    res.status(500).json({ error: 'Failed to recommend NGO' });
+  }
+});
+
+
+
+// 📍 Volunteer recommends an NGO for a donation
+router.post('/request-ngo', async (req, res) => {
+  try {
+    const { volunteerId, donationId, ngoId } = req.body;
+
+    if (!volunteerId || !donationId || !ngoId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newRequest = new NgoRequest({
+      volunteer: volunteerId,
+      donation: donationId,
+      ngo: ngoId
+    });
+
+    await newRequest.save();
+
+    res.json({ success: true, message: 'NGO recommendation request submitted.' });
+  } catch (error) {
+    console.error('Error submitting NGO request:', error);
+    res.status(500).json({ error: 'Failed to submit NGO recommendation request' });
+  }
+});
 
 module.exports = router;

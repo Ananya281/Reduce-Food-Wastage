@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Request = require('../models/Request');
 const Donation = require('../models/Donation');
 const User = require('../models/User'); // ✅ Make sure this is at the top if not already
+const NgoRequest = require('../models/NgoRequest'); // ✅ If you are using NgoRequest model
 const nodemailer = require('nodemailer');
 
 const router = express.Router();
@@ -206,9 +207,6 @@ router.patch('/:id', async (req, res) => {
 // ============================
 // ✏️ Mark as Delivered
 // ============================
-// ============================
-// ✏️ Mark as Delivered
-// ============================
 router.patch('/mark-delivered/:requestId', async (req, res) => {
   try {
     const { requestId } = req.params;
@@ -251,15 +249,18 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
       await transporter.sendMail({
         from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
         to: donation.volunteer.email,
-        subject: '🎉 Donation Successfully Delivered!',
+        subject: '🎉 Your Pickup Delivered Successfully!',
         html: `
-          <h3>Hello ${donation.volunteer.fullName || 'Volunteer'},</h3>
-          <p>Your pickup for <strong>${donation.foodItem}</strong> has been successfully delivered and marked completed by the NGO.</p>
-          <p>Thank you for your contribution! 🚚🎯</p>
-          <br/>
-          <p><i>Reduce Food Waste Team</i></p>
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #2e7d32;">Thank You, ${donation.volunteer.fullName || 'Volunteer'}! 🙌</h2>
+            <p>Your pickup for <strong>${donation.foodItem}</strong> has been <strong>successfully delivered</strong> to the NGO.</p>
+            <p style="margin-top: 10px;">We appreciate your efforts in fighting food wastage and making a positive impact! 🚚🎯</p>
+            <hr style="margin: 20px 0;">
+            <p style="font-size: 12px; color: gray;">Keep volunteering with us to create a hunger-free world.</p>
+            <p style="font-size: 12px; color: gray;"><i>— Reduce Food Waste Team</i></p>
+          </div>
         `
-      });
+      });      
       console.log(`📩 Email sent to Volunteer: ${donation.volunteer.email}`);
     }
 
@@ -268,15 +269,18 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
       await transporter.sendMail({
         from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
         to: donation.donor.email,
-        subject: '🎉 Your Donation Successfully Delivered!',
+        subject: '🎉 Your Donation Reached Safely!',
         html: `
-          <h3>Hello ${donation.donor.fullName || 'Donor'},</h3>
-          <p>Your donation of <strong>${donation.foodItem}</strong> has been successfully delivered to the NGO.</p>
-          <p>Thank you for supporting our mission to reduce food waste! 🙌</p>
-          <br/>
-          <p><i>Reduce Food Waste Team</i></p>
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #1976d2;">Thank You, ${donation.donor.fullName || 'Donor'}! 🎁</h2>
+            <p>Your donation of <strong>${donation.foodItem}</strong> has been <strong>successfully delivered</strong> to the NGO.</p>
+            <p style="margin-top: 10px;">Your kindness is making a difference! 🌟</p>
+            <hr style="margin: 20px 0;">
+            <p style="font-size: 12px; color: gray;">Stay connected for more donation opportunities.</p>
+            <p style="font-size: 12px; color: gray;"><i>— Reduce Food Waste Team</i></p>
+          </div>
         `
-      });
+      });      
       console.log(`📩 Email sent to Donor: ${donation.donor.email}`);
     }
 
@@ -287,5 +291,108 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+// ============================
+// ✨ NGO Reviews Volunteer Recommended Donation
+// ============================
+router.patch('/review-recommended/:requestId', async (req, res) => {
+  const { requestId } = req.params;
+  const { action, ngoDetails } = req.body; // action = 'accept' or 'reject'
+
+  if (!['accept', 'reject'].includes(action)) {
+    return res.status(400).json({ error: 'Action must be "accept" or "reject".' });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(requestId)) {
+    return res.status(400).json({ error: 'Invalid Request ID.' });
+  }
+
+  try {
+    const request = await Request.findById(requestId).populate('donation');
+
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found.' });
+    }
+
+    if (!request.donation) {
+      return res.status(400).json({ error: 'No linked donation found for this request.' });
+    }
+
+    const donation = await Donation.findById(request.donation._id);
+
+    if (!donation) {
+      return res.status(404).json({ error: 'Donation not found.' });
+    }
+
+    if (action === 'accept') {
+      donation.ngoDetails = {
+        ...donation.ngoDetails,
+        name: ngoDetails.name,
+        address: ngoDetails.address,
+        type: ngoDetails.type,
+        contactEmail: ngoDetails.contactEmail,
+      };
+      donation.status = 'AcceptedByNGO';  // ✅ Optional: mark that NGO approved it
+    } else if (action === 'reject') {
+      donation.ngoDetails = undefined;
+      donation.status = 'Available'; // Put donation back as free if rejected
+    }
+
+    await donation.save();
+
+    res.status(200).json({ success: true, message: `Donation successfully ${action}ed by NGO.` });
+
+  } catch (error) {
+    console.error('❌ Error reviewing recommended donation:', error.message);
+    res.status(500).json({ error: 'Server error while reviewing recommendation.' });
+  }
+});
+
+
+// 🛠 NGO Accepts the volunteer recommendation
+router.patch('/accept-recommendation/:donationId', async (req, res) => {
+  try {
+    const { donationId } = req.params;
+
+    const donation = await Donation.findById(donationId);
+
+    if (!donation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    donation.status = 'Confirmed';  // ✅ Update status (You can name it 'Confirmed for Delivery' etc.)
+    await donation.save();
+
+    return res.json({ success: true, message: 'Recommendation accepted' });
+  } catch (error) {
+    console.error('Error accepting recommendation:', error);
+    res.status(500).json({ error: 'Failed to accept recommendation' });
+  }
+});
+
+// 🛠 NGO Rejects the volunteer recommendation
+router.patch('/reject-recommendation/:donationId', async (req, res) => {
+  try {
+    const { donationId } = req.params;
+
+    const donation = await Donation.findById(donationId);
+
+    if (!donation) {
+      return res.status(404).json({ error: 'Donation not found' });
+    }
+
+    // If rejected ➔ Clear NGO link and set back to Available
+    donation.ngoDetails = undefined;
+    donation.status = 'Available'; // again make it available for volunteers
+    await donation.save();
+
+    return res.json({ success: true, message: 'Recommendation rejected' });
+  } catch (error) {
+    console.error('Error rejecting recommendation:', error);
+    res.status(500).json({ error: 'Failed to reject recommendation' });
+  }
+});
+
 
 module.exports = router;

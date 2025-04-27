@@ -13,6 +13,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'react-toastify/dist/ReactToastify.css';
+import RecommendNGOModal from '../components/RecommendNGOModel';  // ✅ (make sure file path is correct)
 
 const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
   const toRad = (val) => (val * Math.PI) / 180;
@@ -27,6 +28,8 @@ const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
 };
 
 const Volunteer = () => {
+  const [showModal, setShowModal] = useState(false);
+  const [currentPickup, setCurrentPickup] = useState(null);
   const [volunteerTasks, setVolunteerTasks] = useState([]);
   const [myPickups, setMyPickups] = useState([]);
   const [availability, setAvailability] = useState(true);
@@ -41,6 +44,11 @@ const Volunteer = () => {
   const navigate = useNavigate();
   const volunteerId = localStorage.getItem('userId');
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+  const handleRecommendNGO = (pickup) => {
+    setCurrentPickup(pickup);
+    setShowModal(true);
+  };  
 
   const donationIcon = new L.divIcon({
     html: ReactDOMServer.renderToString(<MdLocationOn size={32} color="#e53935" />),
@@ -117,6 +125,8 @@ const Volunteer = () => {
     }
   };
 
+  const [acceptedDonationId, setAcceptedDonationId] = useState(null);  // ✨ New state
+
   const handleAccept = async (donationId) => {
     if (!volunteerId) {
       return toast.error("❌ You must be logged in to accept.");
@@ -135,6 +145,7 @@ const Volunteer = () => {
       const data = await res.json();
       if (res.ok) {
         toast.success("✅ Pickup accepted!");
+        setAcceptedDonationId(donationId);   // ✨ Save which donation was accepted
         fetchAvailableDonations();
         fetchVolunteerPickups();
       } else {
@@ -286,34 +297,64 @@ const Volunteer = () => {
 </div>
 </div>
 
-        {/* My Pickups Section */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-green-700">My Pickups</h2>
-          {myPickups.length === 0 ? (
-            <p className="text-gray-600">No pickups yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myPickups.map((pickup) => (
-                <div key={pickup._id} className="bg-gray-100 rounded p-4 shadow">
-                  <h3 className="text-lg font-semibold text-gray-800">{pickup.foodItem}</h3>
-                  <p className="text-sm text-gray-600">Location: {pickup.location}</p>
-                  <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
-                  <p className="text-sm text-gray-600">Pickup Time: {pickup.pickupStartTime} - {pickup.pickupEndTime}</p>
-                  {pickup.status === 'Delivered' ? (
-  <span className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-    Delivered
-  </span>
-) : (
-  <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
-    Picked
-  </span>
-)}
+{/* My Pickups Section */}
+<div className="bg-white p-4 rounded-lg shadow">
+  <h2 className="text-xl font-semibold mb-4 text-green-700">My Pickups</h2>
+  
+  {myPickups.length === 0 ? (
+    <p className="text-gray-600">No pickups yet.</p>
+  ) : (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {myPickups.map((pickup) => (
+          <div key={pickup._id} className="bg-gray-100 rounded p-4 shadow">
+            <h3 className="text-lg font-semibold text-gray-800">{pickup.foodItem}</h3>
+            <p className="text-sm text-gray-600">Location: {pickup.location}</p>
+            <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
+            <p className="text-sm text-gray-600">
+              Pickup Time: {pickup.pickupStartTime} - {pickup.pickupEndTime}
+            </p>
 
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            {pickup.status === 'Delivered' ? (
+              <span className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                Delivered
+              </span>
+            ) : (
+              <>
+                <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+                  Picked
+                </span>
+
+                {/* ✨ Recommend NGO Button */}
+                {pickup.status === 'Picked' && !pickup.ngoDetails && (
+                  <button
+                    onClick={() => handleRecommendNGO(pickup)}
+                    className="mt-2 block bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded-full transition duration-200"
+                  >
+                    Recommend NGO
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ✨ Place the Modal outside map - only once! */}
+      {showModal && currentPickup && (
+        <RecommendNGOModal 
+          pickup={currentPickup}
+          onClose={() => setShowModal(false)}
+          onNgoSelected={() => {
+            setShowModal(false);
+            fetchVolunteerPickups(); // Refresh pickups after NGO linked
+            toast.success('✅ NGO successfully linked!');
+          }}
+        />
+      )}
+    </>
+  )}
+</div>
       </div>
     </div>
   );

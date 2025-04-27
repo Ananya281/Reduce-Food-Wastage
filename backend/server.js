@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const path = require('path');
 
+
 dotenv.config();
 connectDB();
 
@@ -46,6 +47,8 @@ app.use('/api/requests', require('./routes/requestRoutes'));
 app.use('/api/volunteers', require('./routes/volunteerRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/email', require('./routes/emailRoutes'));
+app.use('/api/ngos', require('./routes/ngoRoutes'));
+
 
 // ✅ Serve frontend (optional production)
 if (process.env.NODE_ENV === 'production') {
