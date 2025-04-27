@@ -185,9 +185,10 @@ const [filterStatus, setFilterStatus] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { foodItem, quantity, location, expiryDate, foodPreparedDate, donationAvailableDate, coordinates } = formData;
   
-    // 🚨 Strong single check
+    const freshFormData = { ...formData };
+    const { foodItem, quantity, location, expiryDate, foodPreparedDate, donationAvailableDate, coordinates } = freshFormData;
+  
     if (!foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       toast.warn("⚠️ Please fill all required fields");
       return;
@@ -208,13 +209,13 @@ const [filterStatus, setFilterStatus] = useState('');
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          ...freshFormData,
           donor: donorId,
-          ngoRequestId: formData.ngoRequestId || null,
-          preparedAt: formData.foodPreparedDate,
-          availableFrom: formData.donationAvailableDate,
-          isRefrigerated: formData.isRefrigerated === 'Yes',
-          coordinates: formData.coordinates
+          ngoRequestId: freshFormData.ngoRequestId || null,
+          preparedAt: freshFormData.foodPreparedDate,
+          availableFrom: freshFormData.donationAvailableDate,
+          isRefrigerated: freshFormData.isRefrigerated === 'Yes',
+          coordinates: freshFormData.coordinates
         })
       });
   
@@ -226,9 +227,8 @@ const [filterStatus, setFilterStatus] = useState('');
         setFormData({
           foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
-          pickupStartTime: '', pickupEndTime: '', 
-          servings: '',
-          storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
+          pickupStartTime: '', pickupEndTime: '',
+          servings: '', storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
           coordinates: { lat: null, lng: null }
         });
         fetchDonations();
@@ -240,7 +240,8 @@ const [filterStatus, setFilterStatus] = useState('');
       console.error('❌ Donation Save Error:', error);
       toast.error('❌ Error during donation save');
     }
-  };  
+  };
+  
 
   const handleDelete = async (donationId) => {
     if (!window.confirm("Are you sure you want to delete this donation?")) return;
