@@ -22,7 +22,11 @@ const Register = () => {
     website: '',
     ngoOperatingDays: [],
     ngoStartTime: '',
-    ngoEndTime: ''
+    ngoEndTime: '',
+    locationCoordinates: {   // ✨ Add this
+      type: 'Point',
+      coordinates: []
+    }
   });
 
   const [isLocating, setIsLocating] = useState(false);
@@ -65,8 +69,17 @@ const Register = () => {
           );
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
-          setFormData(prev => ({ ...prev, ngoAddress: address }));
-          toast.success('📍 Address auto-filled successfully!');
+  
+          setFormData(prev => ({
+            ...prev,
+            ngoAddress: address,
+            locationCoordinates: {   // ✨ Add this
+              type: 'Point',
+              coordinates: [longitude, latitude] // Longitude first, then latitude
+            }
+          }));
+  
+          toast.success('📍 Address and Coordinates captured!');
         } catch (err) {
           toast.error('Failed to fetch address');
         } finally {
@@ -78,7 +91,7 @@ const Register = () => {
         setIsLocating(false);
       }
     );
-  };
+  };  
 
   const navigateToDashboard = (role) => {
     if (role === 'Donor') navigate('/donor');

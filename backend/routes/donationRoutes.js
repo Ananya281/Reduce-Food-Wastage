@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     if (!coordinates || coordinates.lat == null || coordinates.lng == null) {
       console.log("❌ Coordinates missing.");
       return res.status(400).json({ error: 'Coordinates missing. Please allow location access.' });
-    }
+    }    
 
     let ngoRequest;
     let ngoDetails = null;

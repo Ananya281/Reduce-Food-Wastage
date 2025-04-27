@@ -56,18 +56,21 @@ const [filterStatus, setFilterStatus] = useState('');
         foodType: req.foodType || '',
         quantity: req.quantity || '',
         location: req.location || '',
+        coordinates: req.locationCoordinates || { lat: null, lng: null },
         contactNumber: req.contactNumber || '',
         specialNotes: req.specialNotes || '',
-        ngoRequestId: req._id  // ✅ Add this line
+        ngoRequestId: req._id
       }));
       toast.info('📝 NGO request prefilled. Please complete the donation form.');
     }
   
-    handleAutoFillLocation(); // ✅ FIXED: this now invokes the function
+    // 👉 Automatically try fetching location on page load:
+    getCurrentLocation();  // ✅ change from handleAutoFillLocation() to getCurrentLocation()
+  
     fetchDonations();
     fetchPreviousLocations();
     fetchNGORequests();
-  }, []);
+  }, []);  
   
 
   const handleAutoFillLocation = () => {
@@ -80,6 +83,7 @@ const [filterStatus, setFilterStatus] = useState('');
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        console.log("✅ Coordinates Captured:", latitude, longitude);
   
         try {
           const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
@@ -103,8 +107,8 @@ const [filterStatus, setFilterStatus] = useState('');
             ngoAddress: address,
             coordinates: { lat: latitude, lng: longitude }
           }));
-  
           toast.success("📍 Location auto-filled!");
+          toast.success('📍 Location and Coordinates Captured Successfully!');
         } catch (error) {
           console.error("Geocoding error:", error);
           toast.error("❌ Failed to fetch address.");
@@ -200,39 +204,40 @@ const [filterStatus, setFilterStatus] = useState('');
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { foodItem, quantity, location, expiryDate, foodPreparedDate, donationAvailableDate, coordinates } = formData;
-
+  
+    // 🚨 Strong single check
     if (!foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       toast.warn("⚠️ Please fill all required fields");
       return;
     }
-
-    if (!coordinates.lat || !coordinates.lng) {
-      toast.error("❌ Location coordinates missing");
+  
+    if (!coordinates || coordinates.lat == null || coordinates.lng == null) {
+      toast.error('❌ Location coordinates missing. Please click 📍 Use Location button.');
       return;
     }
-
+  
     try {
       const url = editingId
         ? `${BACKEND_URL}/api/donations/${editingId}`
         : `${BACKEND_URL}/api/donations`;
       const method = editingId ? 'PATCH' : 'POST';
-
+  
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           donor: donorId,
-          ngoRequestId: formData.ngoRequestId || null, // ✅ Add this
+          ngoRequestId: formData.ngoRequestId || null,
           preparedAt: formData.foodPreparedDate,
           availableFrom: formData.donationAvailableDate,
           isRefrigerated: formData.isRefrigerated === 'Yes',
           coordinates: formData.coordinates
         })
       });
-
+  
       const data = await res.json();
-
+  
       if (data._id || data.modifiedCount) {
         toast.success(editingId ? '✏️ Donation updated!' : '✅ Donation created!');
         setEditingId(null);
@@ -246,11 +251,14 @@ const [filterStatus, setFilterStatus] = useState('');
         });
         fetchDonations();
         fetchPreviousLocations();
-      } else toast.error('❌ Failed to save donation');
-    } catch {
+      } else {
+        toast.error('❌ Failed to save donation');
+      }
+    } catch (error) {
+      console.error('❌ Donation Save Error:', error);
       toast.error('❌ Error during donation save');
     }
-  };
+  };  
 
   const handleDelete = async (donationId) => {
     if (!window.confirm("Are you sure you want to delete this donation?")) return;
