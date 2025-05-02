@@ -402,4 +402,32 @@ router.patch('/reject-recommendation/:donationId', async (req, res) => {
 });
 
 
+// ============================
+// ✅ Recommended Donations API (Example)
+// /api/requests/recommended?ngo=NGO_ID
+// ============================
+router.get('/recommended', async (req, res) => {
+  try {
+    const { ngo } = req.query;
+
+    console.log("📥 Incoming NGO ID for recommendations:", ngo); // 🔍 debug line
+
+    if (!ngo || !mongoose.Types.ObjectId.isValid(ngo)) {
+      return res.status(400).json({ error: 'Valid NGO ID is required.' });
+    }
+
+    // Example logic: Get available donations that are NOT already linked to any request
+    const recommendedDonations = await Donation.find({
+      status: 'Available',
+      ngoRequest: null // optional if you store request ID in Donation
+    }).sort({ createdAt: -1 }).limit(5); // customize logic as needed
+
+    res.status(200).json(recommendedDonations);
+  } catch (error) {
+    console.error('❌ Error fetching recommended donations:', error.message);
+    res.status(500).json({ error: 'Server error while fetching recommendations.' });
+  }
+});
+
+
 module.exports = router;

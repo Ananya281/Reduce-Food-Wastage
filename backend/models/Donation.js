@@ -69,10 +69,20 @@ const donationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  coordinates: {
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true }
+
+  // ✅ Updated to GeoJSON format
+ coordinates: {
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: true
   },
+  coordinates: {
+    type: [Number],
+    required: true
+  }
+},
+
   ngoRequest: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Request',
@@ -83,9 +93,9 @@ const donationSchema = new mongoose.Schema({
     default: null
   },
   donorDetails: {
-  type: Object,
-  default: null
-},
+    type: Object,
+    default: null
+  },
   status: {
     type: String,
     enum: ['Available', 'Picked', 'Delivered'],
@@ -110,6 +120,9 @@ const donationSchema = new mongoose.Schema({
     type: Date
   }
 });
+
+// ✅ GeoIndex for spatial queries
+donationSchema.index({ coordinates: '2dsphere' });
 
 donationSchema.pre('save', function (next) {
   this.updatedAt = Date.now();

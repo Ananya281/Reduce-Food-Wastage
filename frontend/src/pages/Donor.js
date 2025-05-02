@@ -59,18 +59,19 @@ const [filterStatus, setFilterStatus] = useState('');
         coordinates: req.locationCoordinates || { lat: null, lng: null },
         contactNumber: req.contactNumber || '',
         specialNotes: req.specialNotes || '',
-        ngoRequestId: req._id
+        ngoRequestId: req._id  // ✅ FIX THIS LINE: you were setting it to null earlier
       }));
       toast.info('📝 NGO request prefilled. Please complete the donation form.');
-    }
+    }    
   
-    // 👉 Automatically try fetching location on page load:
-    getCurrentLocation();  // ✅ change from handleAutoFillLocation() to getCurrentLocation()
+    // ✅ New: Prefill saved donor location
+    fetchDonorLocation();
   
     fetchDonations();
     fetchPreviousLocations();
     fetchNGORequests();
-  }, []);  
+  }, []);
+   
   
 
   const handleAutoFillLocation = () => {
@@ -105,7 +106,11 @@ const [filterStatus, setFilterStatus] = useState('');
             ...prev,
             location: address,
             ngoAddress: address,
-            coordinates: { lat: latitude, lng: longitude }
+coordinates: {
+  type: 'Point',
+  coordinates: [formData.coordinates.lng, formData.coordinates.lat]
+}
+
           }));
           toast.success("📍 Location auto-filled!");
           toast.success('📍 Location and Coordinates Captured Successfully!');
@@ -186,9 +191,14 @@ const [filterStatus, setFilterStatus] = useState('');
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    const freshFormData = { ...formData };
-    const { foodItem, quantity, location, expiryDate, foodPreparedDate, donationAvailableDate, coordinates } = freshFormData;
+    const {
+      foodItem, foodType, quantity, packaging, location,
+      foodPreparedDate, donationAvailableDate, expiryDate,
+      pickupStartTime, pickupEndTime, servings, storageInstructions,
+      specialNotes, isRefrigerated, coordinates, ngoRequestId
+    } = formData;
   
+    // Validate required fields
     if (!foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
       toast.warn("⚠️ Please fill all required fields");
       return;
@@ -209,17 +219,28 @@ const [filterStatus, setFilterStatus] = useState('');
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...freshFormData,
           donor: donorId,
-          ngoRequestId: freshFormData.ngoRequestId || null,
-          preparedAt: freshFormData.foodPreparedDate,
-          availableFrom: freshFormData.donationAvailableDate,
-          isRefrigerated: freshFormData.isRefrigerated === 'Yes',
-          coordinates: freshFormData.coordinates
+          foodItem,
+          foodType,
+          quantity,
+          packaging,
+          location,
+          foodPreparedDate,           // ✅ backend will rename to preparedAt
+          donationAvailableDate,      // ✅ backend will rename to availableFrom
+          expiryDate,
+          pickupStartTime,
+          pickupEndTime,
+          servings,
+          storageInstructions,
+          specialNotes,
+          isRefrigerated: isRefrigerated === 'Yes',
+          coordinates,
+          ngoRequestId: ngoRequestId || null
         })
       });
   
       const data = await res.json();
+      console.log("🔴 Donation API response:", data);
   
       if (data._id || data.modifiedCount) {
         toast.success(editingId ? '✏️ Donation updated!' : '✅ Donation created!');
@@ -227,8 +248,8 @@ const [filterStatus, setFilterStatus] = useState('');
         setFormData({
           foodItem: '', foodType: '', quantity: '', packaging: '', location: '',
           foodPreparedDate: '', donationAvailableDate: '', expiryDate: '',
-          pickupStartTime: '', pickupEndTime: '',
-          servings: '', storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
+          pickupStartTime: '', pickupEndTime: '', servings: '',
+          storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
           coordinates: { lat: null, lng: null }
         });
         fetchDonations();
@@ -241,6 +262,7 @@ const [filterStatus, setFilterStatus] = useState('');
       toast.error('❌ Error during donation save');
     }
   };
+  
   
 
   const handleDelete = async (donationId) => {
@@ -267,8 +289,8 @@ const [filterStatus, setFilterStatus] = useState('');
     setEditingId(donation._id);
     setFormData({
       ...donation,
-      foodPreparedDate: donation.preparedAt?.slice(0, 16) || '',
-      donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
+     foodPreparedDate: donation.preparedAt?.slice(0, 16) || '',
+donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
       expiryDate: donation.expiryDate?.slice(0, 16) || '',
       isRefrigerated: donation.isRefrigerated ? 'Yes' : 'No',
       coordinates: donation.coordinates || { lat: null, lng: null }
@@ -300,6 +322,29 @@ const [filterStatus, setFilterStatus] = useState('');
       console.error("Failed to load NGO requests:", error);
     }
   };  
+
+  const fetchDonorLocation = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/users/${donorId}`);
+      const data = await res.json();
+  
+      if (res.ok && data?.ngoAddress && data?.locationCoordinates) {
+        setFormData(prev => ({
+          ...prev,
+          location: data.ngoAddress,
+          coordinates: {
+            lat: data.locationCoordinates.coordinates[1], // lat
+            lng: data.locationCoordinates.coordinates[0], // lng
+          }
+        }));
+        toast.success('📍 Coordinates Captured from Profile!');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching donor location:', err);
+      toast.error('Could not load saved location');
+    }
+  };
+  
 
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
@@ -339,33 +384,6 @@ const [filterStatus, setFilterStatus] = useState('');
             </select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity (e.g., 10kg)" className="p-3 border rounded" required />
             <input name="packaging" value={formData.packaging} onChange={handleChange} placeholder="Packaging Type" className="p-3 border rounded" />
- {/* Address field + auto location button */}
- <div className="mb-4">
- <label htmlFor="location" className="text-sm font-medium block mb-1">Donor Address/Location</label>
- <div className="flex items-center gap-2">
-  <input
-  name="location"
-  id="location"
-  placeholder="Donor Address/Location"
-  value={formData.location}
-  className="flex-1 p-3 border rounded"
-  onChange={handleChange}
-/>
-    <button
-  type="button"
-  disabled={isLocating}
-  onClick={handleAutoFillLocation}
-  className={`text-sm px-3 py-2 border rounded transition ${
-    isLocating
-      ? 'bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed'
-      : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
-  }`}
->
-  {isLocating ? 'Fetching...' : '📍 Use Location'}
-</button>
-
-  </div>
-</div>
 
 
 

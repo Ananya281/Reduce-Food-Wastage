@@ -91,8 +91,10 @@ exports.register = async (req, res) => {
       website,
       ngoOperatingDays,
       ngoStartTime,
-      ngoEndTime
+      ngoEndTime,
+      locationCoordinates: req.body.locationCoordinates  // ✅ Add this here
     });
+    
 
     const token = generateToken(newUser);
     res.status(201).json({ token, user: newUser });
@@ -198,5 +200,16 @@ exports.googleLogin = async (req, res) => {
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     res.status(500).json({ error: 'Google login failed. Please try again.' });
+  }
+};
+
+exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.status(200).json(user);
+  } catch (err) {
+    console.error('❌ Error fetching user by ID:', err);
+    res.status(500).json({ error: 'Server error while fetching user' });
   }
 };

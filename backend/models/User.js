@@ -21,9 +21,9 @@ const userSchema = new mongoose.Schema({
   },
 
   password: {
-  type: String,
-  required: true
-},
+    type: String,
+    required: true
+  },
 
   role: {
     type: String,
@@ -39,16 +39,14 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
 
-contactNumber: {
-  type: String,
-  trim: true,
-  required: function () {
-    return this.role === 'Volunteer' || this.role === 'NGOs' || this.role === 'Donor';
+  contactNumber: {
+    type: String,
+    trim: true,
+    required: true,
+    match: [/^\d{10}$/, 'Contact number must be a valid 10-digit mobile number']
   },
-  match: [/^\d{10}$/, 'Contact number must be a valid 10-digit mobile number']
-},
 
-  // Fields specific to NGOs only
+  // ✅ NGO-specific fields (only required if role === 'NGOs')
   ngoRegNumber: {
     type: String,
     trim: true,
@@ -109,24 +107,23 @@ contactNumber: {
     trim: true,
     default: '',
   },
+
   locationCoordinates: {
-  type: { 
-    type: String, 
-    enum: ['Point'], 
-    required: function() {
-      return this.role === 'NGOs';
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: function () {
+      return this.role === 'Volunteer' || this.role === 'NGOs' || this.role === 'Donor';
     },
     default: 'Point'
   },
   coordinates: {
-    type: [Number], // [longitude, latitude]
-    required: function() {
-      return this.role === 'NGOs';
+    type: [Number],
+    required: function () {
+      return this.role === 'Volunteer' || this.role === 'NGOs' || this.role === 'Donor';
     }
   }
 },
-
-
   createdAt: {
     type: Date,
     default: Date.now,

@@ -43,10 +43,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
-    if (!coordinates || coordinates.lat == null || coordinates.lng == null) {
-      console.log("❌ Coordinates missing.");
-      return res.status(400).json({ error: 'Coordinates missing. Please allow location access.' });
-    }    
+    if (
+      !coordinates ||
+      typeof coordinates.lat !== 'number' ||
+      typeof coordinates.lng !== 'number' ||
+      isNaN(coordinates.lat) || isNaN(coordinates.lng)
+    ) {
+      return res.status(400).json({ error: 'Coordinates must include valid lat and lng as numbers' });
+    }
+     
 
     let ngoRequest;
     let ngoDetails = null;
@@ -88,26 +93,27 @@ router.post('/', async (req, res) => {
       foodItem,
       foodType,
       quantity,
-      packaging,
+      packaging: packaging || '',
       location,
       preparedAt: new Date(foodPreparedDate),
       availableFrom: new Date(donationAvailableDate),
       expiryDate: new Date(expiryDate),
-      pickupStartTime,
-      pickupEndTime,
-      servings,
+      pickupStartTime: pickupStartTime || '',
+      pickupEndTime: pickupEndTime || '',
+      servings: servings || '',
       contactNumber,
-      storageInstructions,
-      specialNotes,
+      storageInstructions: storageInstructions || '',
+      specialNotes: specialNotes || '',
       isRefrigerated: isRefrigerated === true || isRefrigerated === 'Yes',
-      coordinates: {
-        lat: coordinates.lat,
-        lng: coordinates.lng
-      },
+coordinates: {
+  type: 'Point',
+  coordinates: [coordinates.lng, coordinates.lat]
+},
       ngoRequest: ngoRequestId || null,
       ngoDetails: ngoDetails || null,
       donorDetails: donorDetails || null
     });
+    
 
     console.log("✅ Donation created successfully:", donation._id);
 
@@ -167,6 +173,7 @@ router.get('/reverse-geocode', async (req, res) => {
 // ============================
 router.patch('/:donationId', async (req, res) => {
   const { donationId } = req.params;
+
   if (!mongoose.Types.ObjectId.isValid(donationId)) {
     return res.status(400).json({ error: 'Invalid donation ID' });
   }
@@ -180,6 +187,18 @@ router.patch('/:donationId', async (req, res) => {
       updatedAt: new Date()
     };
 
+    // ✅ Validate coordinates if present
+    if (updateFields.coordinates) {
+      const { lat, lng } = updateFields.coordinates;
+      if (
+        typeof lat !== 'number' ||
+        typeof lng !== 'number' ||
+        isNaN(lat) || isNaN(lng)
+      ) {
+        return res.status(400).json({ error: 'Coordinates must include valid lat and lng as numbers' });
+      }
+    }
+
     const updatedDonation = await Donation.findByIdAndUpdate(
       donationId,
       { $set: updateFields },
@@ -192,9 +211,11 @@ router.patch('/:donationId', async (req, res) => {
 
     res.status(200).json(updatedDonation);
   } catch (err) {
+    console.error('❌ Error updating donation:', err);
     res.status(500).json({ error: 'Failed to update donation', details: err.message });
   }
 });
+
 
 // ============================
 // 🗑️ Delete a Donation
@@ -253,7 +274,7 @@ router.get('/donor/:donorId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid donor ID' });
     }
 
-    const donations = await Donation.find({ donor: donorId }).populate('donor');
+    const donations = await Donation.find({ donor: donorId }).populate('donor').sort({ createdAt: -1 });
     res.status(200).json(donations);
   } catch (err) {
     res.status(500).json({ error: 'Server error while fetching donor donations' });

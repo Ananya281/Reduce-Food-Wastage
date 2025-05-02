@@ -48,6 +48,8 @@ app.use('/api/volunteers', require('./routes/volunteerRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/email', require('./routes/emailRoutes'));
 app.use('/api/ngos', require('./routes/ngoRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+
 
 
 // ✅ Serve frontend (optional production)

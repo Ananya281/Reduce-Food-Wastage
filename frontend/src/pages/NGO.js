@@ -44,7 +44,7 @@ const [sortOrder, setSortOrder] = useState('newest');
 
   const fetchRecommendedDonations = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/recommended?ngoId=${receiverId}`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/recommended?ngo=${receiverId}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setRecommendedDonations(data);
