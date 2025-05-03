@@ -217,34 +217,6 @@ router.patch('/:id/toggleAvailability', async (req, res) => {
   }
 });
 
-/**
- * ✅ Mark a donation as Delivered (simple status update only)
- */
-router.patch('/deliver/:donationId', async (req, res) => {
-  const donationId = req.params.donationId.trim(); // ✅ Trim newline/space
-
-  if (!mongoose.Types.ObjectId.isValid(donationId)) {
-    return res.status(400).json({ error: `Invalid donation ID: ${donationId}` });
-  }
-
-  try {
-    const updatedDonation = await Donation.findByIdAndUpdate(
-      donationId,
-      { status: 'Delivered', deliveredAt: new Date() },
-      { new: true, runValidators: false }
-    );
-
-    if (!updatedDonation) {
-      return res.status(404).json({ error: 'Donation not found' });
-    }
-
-    res.status(200).json({ success: true, message: 'Donation marked as delivered' });
-  } catch (err) {
-    console.error('❌ Error marking donation as delivered:', err.message);
-    res.status(500).json({ error: 'Failed to mark donation as delivered' });
-  }
-});
-
 
 /**
  * ✨ Volunteer recommends an NGO for a donation

@@ -214,35 +214,32 @@ router.patch('/:id', async (req, res) => {
 // ============================
 // ✏️ Mark as Delivered
 // ============================
-router.patch('/mark-delivered/:requestId', async (req, res) => {
+router.patch('/mark-delivered/:donationId', async (req, res) => {
   try {
-    const { requestId } = req.params;
+    const { donationId } = req.params;
 
-    const request = await Request.findByIdAndUpdate(
-      requestId,
-      { status: 'Completed' },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    if (!request.donation) {
-      return res.status(400).json({ error: 'No linked donation found' });
-    }
-
-    const donation = await Donation.findByIdAndUpdate(
-      request.donation,
-      { status: 'Delivered' },
-      { new: true }
-    ).populate('donor').populate('volunteer');  // ✨ FIX here: populate separately
+    const donation = await Donation.findById(donationId)
+      .populate('donor')
+      .populate('volunteer');
 
     if (!donation) {
       return res.status(404).json({ error: 'Donation not found' });
     }
 
-    // Setup nodemailer transporter
+    // ✅ Mark donation as delivered
+    donation.status = 'Delivered';
+    await donation.save();
+
+    // ✅ Find and mark the linked NGO request as completed
+    const ngoRequest = await NgoRequest.findOne({ donation: donation._id });
+
+    if (!ngoRequest) {
+      return res.status(404).json({ error: 'Linked NGO Request not found' });
+    }
+
+    await Request.findByIdAndUpdate(ngoRequest.request, { status: 'Completed' });
+
+    // ✅ Nodemailer setup
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -251,8 +248,8 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
       }
     });
 
-    // Send email to Volunteer
-    if (donation.volunteer?.email) {  // ✅ Check if volunteer exists and has email
+    // ✅ Send email to volunteer
+    if (donation.volunteer?.email) {
       await transporter.sendMail({
         from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
         to: donation.volunteer.email,
@@ -261,18 +258,13 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #2e7d32;">Thank You, ${donation.volunteer.fullName || 'Volunteer'}! 🙌</h2>
             <p>Your pickup for <strong>${donation.foodItem}</strong> has been <strong>successfully delivered</strong> to the NGO.</p>
-            <p style="margin-top: 10px;">We appreciate your efforts in fighting food wastage and making a positive impact! 🚚🎯</p>
-            <hr style="margin: 20px 0;">
-            <p style="font-size: 12px; color: gray;">Keep volunteering with us to create a hunger-free world.</p>
-            <p style="font-size: 12px; color: gray;"><i>— Reduce Food Waste Team</i></p>
-          </div>
-        `
-      });      
-      console.log(`📩 Email sent to Volunteer: ${donation.volunteer.email}`);
+            <hr><p style="font-size: 12px; color: gray;">— Reduce Food Waste Team</p>
+          </div>`
+      });
     }
 
-    // Send email to Donor
-    if (donation.donor?.email) {  // ✅ Check if donor exists and has email
+    // ✅ Send email to donor
+    if (donation.donor?.email) {
       await transporter.sendMail({
         from: `"Reduce Food Waste" <${process.env.GMAIL_USER}>`,
         to: donation.donor.email,
@@ -281,23 +273,19 @@ router.patch('/mark-delivered/:requestId', async (req, res) => {
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #1976d2;">Thank You, ${donation.donor.fullName || 'Donor'}! 🎁</h2>
             <p>Your donation of <strong>${donation.foodItem}</strong> has been <strong>successfully delivered</strong> to the NGO.</p>
-            <p style="margin-top: 10px;">Your kindness is making a difference! 🌟</p>
-            <hr style="margin: 20px 0;">
-            <p style="font-size: 12px; color: gray;">Stay connected for more donation opportunities.</p>
-            <p style="font-size: 12px; color: gray;"><i>— Reduce Food Waste Team</i></p>
-          </div>
-        `
-      });      
-      console.log(`📩 Email sent to Donor: ${donation.donor.email}`);
+            <hr><p style="font-size: 12px; color: gray;">— Reduce Food Waste Team</p>
+          </div>`
+      });
     }
 
-    res.status(200).json({ success: true, message: 'Request and Donation marked as delivered. Emails sent.' });
+    res.status(200).json({ success: true, message: 'Donation and request marked as delivered. Emails sent.' });
 
   } catch (error) {
     console.error('❌ Error marking delivered:', error.message);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error while marking as delivered' });
   }
 });
+
 
 
 // ============================
@@ -372,7 +360,7 @@ router.patch('/accept-recommendation/:donationId', async (req, res) => {
     const donation = await Donation.findById(donationId);
     if (!donation) return res.status(404).json({ error: 'Donation not found' });
 
-    donation.status = 'Confirmed';
+    donation.status = 'Accepted';
     await donation.save();
 
     const ngoRequest = await NgoRequest.findOne({ donation: donation._id, ngo: ngoId });
@@ -447,11 +435,12 @@ router.get('/recommended', async (req, res) => {
       return res.status(400).json({ error: 'Valid NGO ID is required.' });
     }
 
-    const recommendations = await NgoRequest.find({ ngo, status: 'Pending' })
+    const recommendations = await NgoRequest.find({ ngo, status: { $in: ['Pending', 'Accepted'] }})
       .populate({
         path: 'donation',
-        select: 'foodItem quantity foodType'
+        select: 'foodItem quantity foodType status'
       });
+      
 
     const formatted = recommendations
       .filter(r => r.donation) // ensure donation still exists
@@ -459,7 +448,9 @@ router.get('/recommended', async (req, res) => {
         _id: r.donation._id,
         foodItem: r.donation.foodItem,
         quantity: r.donation.quantity,
-        foodType: r.donation.foodType
+        foodType: r.donation.foodType,
+        status: r.donation.status,        // ✅ include donation status
+        requestId: r.donation.request,           
       }));
 
     res.status(200).json(formatted);

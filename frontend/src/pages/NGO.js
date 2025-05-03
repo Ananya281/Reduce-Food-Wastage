@@ -51,13 +51,14 @@ const [sortOrder, setSortOrder] = useState('newest');
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/recommended?ngo=${receiverId}`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        setRecommendedDonations(data);
+        setRecommendedDonations(data);  // This now includes pending + confirmed
       }
     } catch (error) {
       console.error('❌ Error fetching volunteer recommended donations:', error);
       toast.error('Failed to load volunteer recommendations.');
     }
-  };  
+  };
+  
 
   useEffect(() => {
     if (receiverId) {
@@ -257,24 +258,25 @@ const [sortOrder, setSortOrder] = useState('newest');
     return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
   });
 
-  const markAsDelivered = async (requestId) => {
+  const markAsDelivered = async (donationId) => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/mark-delivered/${requestId}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/mark-delivered/${donationId}`, {
         method: 'PATCH'
       });
   
       const data = await res.json();
       if (res.ok) {
         toast.success('✅ Marked as Delivered!');
-        fetchRequests(); // refresh UI
+        fetchRequests(); // Refresh pickup list
       } else {
-        toast.error(data.error || '❌ Failed to update');
+        toast.error(data.error || '❌ Failed to mark as delivered');
       }
     } catch (err) {
       console.error('Error marking delivered:', err);
       toast.error('❌ Error updating delivery status');
     }
-  };  
+  };
+  
 
   return (
     <div className="pt-24 px-6 pb-16 bg-white min-h-screen">
@@ -288,30 +290,17 @@ const [sortOrder, setSortOrder] = useState('newest');
         <div className="bg-gray-50 p-6 rounded-xl shadow mb-10">
           <h2 className="text-2xl font-semibold text-green-600 mb-4">{isEditing ? 'Edit Request' : 'Submit a Food Request'}</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-  name="foodItem"
-  value={formData.foodItem}
-  onChange={handleChange}
-  placeholder="Food Item"
-  required
-  className="p-3 border rounded"
-/>
-          <select
-  name="foodType"
-  value={formData.foodType}
-  onChange={handleChange}
-  className="p-3 border rounded"
-  required
->
-  <option value="">Select Food Type</option>
-  <option value="Veg">Veg</option>
-  <option value="Non-Veg">Non-Veg</option>
-  <option value="Cooked">Cooked</option>
-  <option value="Canned">Canned</option>
-  <option value="Packaged">Packaged</option>
-  <option value="Raw">Raw</option>
-  <option value="Other">Other</option>
-</select>
+            <input name="foodItem" value={formData.foodItem} onChange={handleChange} placeholder="Food Item" required className="p-3 border rounded" />
+            <select name="foodType" value={formData.foodType} onChange={handleChange} className="p-3 border rounded" required>
+              <option value="">Select Food Type</option>
+              <option value="Veg">Veg</option>
+              <option value="Non-Veg">Non-Veg</option>
+              <option value="Cooked">Cooked</option>
+              <option value="Canned">Canned</option>
+              <option value="Packaged">Packaged</option>
+              <option value="Raw">Raw</option>
+              <option value="Other">Other</option>
+            </select>
             <input name="quantity" value={formData.quantity} onChange={handleChange} placeholder="Quantity" required className="p-3 border rounded" />
             <select name="urgency" value={formData.urgency} onChange={handleChange} className="p-3 border rounded">
               <option value="Normal">Normal</option>
@@ -319,183 +308,117 @@ const [sortOrder, setSortOrder] = useState('newest');
             </select>
             <input name="preferredDate" type="date" value={formData.preferredDate} onChange={handleChange} className="p-3 border rounded" />
             <textarea name="specialNotes" value={formData.specialNotes} onChange={handleChange} placeholder="Special Notes" className="p-3 border rounded md:col-span-2" rows={3} />
-            <button type="submit" className="bg-green-600 text-white py-3 rounded col-span-1 md:col-span-2 hover:bg-green-700">
-              {isEditing ? 'Update Request' : 'Submit Request'}
-            </button>
+            <button type="submit" className="bg-green-600 text-white py-3 rounded col-span-1 md:col-span-2 hover:bg-green-700">{isEditing ? 'Update Request' : 'Submit Request'}</button>
           </form>
         </div>
+
+        {/* Tabs */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex gap-4 mb-8">
-  <button
-    onClick={() => setSelectedTab('requests')}
-    className={`px-4 py-2 rounded-full ${
-      selectedTab === 'requests' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
-    }`}
-  >
-    📋 My Requests
-  </button>
-  <button
-    onClick={() => setSelectedTab('recommendations')}
-    className={`px-4 py-2 rounded-full ${
-      selectedTab === 'recommendations' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
-    }`}
-  >
-    🔔 Volunteer Notifications {recommendedDonations.length > 0 && (
-      <span className="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{recommendedDonations.length}</span>
-    )}
-  </button>
-</div>
-  <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
-  <select
-    value={statusFilter}
-    onChange={(e) => setStatusFilter(e.target.value)}
-    className="p-2 border rounded"
-  >
-    <option value="">All Statuses</option>
-    <option value="Pending">Pending</option>
-    <option value="Accepted">Accepted</option>
-    <option value="Completed">Completed</option>
-    <option value="Rejected">Rejected</option>
-  </select>
-
-  <select
-    value={urgencyFilter}
-    onChange={(e) => setUrgencyFilter(e.target.value)}
-    className="p-2 border rounded"
-  >
-    <option value="">All Urgencies</option>
-    <option value="Normal">Normal</option>
-    <option value="Urgent">Urgent</option>
-  </select>
-
-  <select
-    value={sortOrder}
-    onChange={(e) => setSortOrder(e.target.value)}
-    className="p-2 border rounded"
-  >
-    <option value="newest">Newest First</option>
-    <option value="oldest">Oldest First</option>
-  </select>
-
-  <button
-            onClick={() => {
-              setStatusFilter('');
-              setUrgencyFilter('');
-              setSortOrder('newest');
-            }}
-            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-          >
-            🔄 Reset Filters
-          </button>
-</div>
-</div>
-
-        {/* Request List */}
-{selectedTab === 'requests' ? (
-  <>
-    <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
-    {loading ? (
-      <p className="text-gray-500">Loading requests...</p>
-    ) : filteredRequests.length === 0 ? (
-      <p className="text-gray-500">No requests found.</p>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredRequests.map((req) => (
-  <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
-    
-    {/* Header + food info */}
-    <div className="text-gray-700 space-y-1 mb-2">
-      <div className="flex items-center gap-2 text-xl font-semibold text-green-700">
-        <FaBoxOpen /> {req.foodType || 'N/A'}
-      </div>
-      <p className="flex items-center gap-2">🍽️ <span className="font-medium">Food Item:</span> {req.foodItem}</p>
-      <p className="flex items-center gap-2">🕒 <span className="font-medium">Quantity:</span> {req.quantity}</p>
-      <p className={`flex items-center gap-2 ${req.urgency === 'Urgent' ? 'text-red-600 font-semibold' : ''}`}>
-        🚩 <span className="font-medium">Urgency:</span> {req.urgency}
-      </p>
-      {req.preferredDate && (
-        <p className="flex items-center gap-2">📅 <span className="font-medium">Preferred:</span> {new Date(req.preferredDate).toLocaleDateString()}</p>
-      )}
-      {req.specialNotes && (
-        <p className="flex items-start gap-2 text-gray-500 italic">📝 {req.specialNotes}</p>
-      )}
-    </div>
-
-    {/* Optional NGO details */}
-    {req.ngoDetails?.address && (
-      <p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>
-    )}
-    {req.ngoDetails?.name && (
-      <p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>
-    )}
-
-    {/* Status Badge */}
-    <span className={`inline-block px-3 py-1 rounded-full text-white text-sm mt-3 ${
-      req.status === 'Pending' ? 'bg-blue-500' :
-      req.status === 'Picked' ? 'bg-yellow-500' :
-      req.status === 'Delivered' ? 'bg-green-600' : 'bg-gray-400'
-    }`}>
-      {req.status}
-    </span>
-
-    {/* Actions */}
-    {req.status === 'Accepted' && (
-      <button
-        onClick={() => markAsDelivered(req._id)}
-        className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-      >
-        ✅ Mark as Delivered
-      </button>
-    )}
-    <button
-      onClick={() => handleClone(req)}
-      className="text-green-600 hover:text-green-800 mt-2 text-sm block"
-    >
-      🔁 Request Again
-    </button>
-  </div>
-))}
-</div>
-    )}
-  </>
-) : (
-  <>
-    <h2 className="text-2xl font-bold text-green-700 mb-4">🔔 Volunteer Recommendations</h2>
-    {loading ? (
-      <p className="text-gray-500">Loading volunteer notifications...</p>
-    ) : recommendedDonations.length === 0 ? (
-      <p className="text-gray-500">No volunteer recommendations pending.</p>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {uniqueRecommendations.map((donation, index) => (          <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
-            <div className="text-gray-700 space-y-1 mb-2">
-              <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
-              <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
-              <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
-            </div>
-            {/* ✅ Move buttons inside here for each donation */}
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={() => handleAcceptRecommendation(donation._id)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
-            >
-              ✅ Accept
-            </button>
-
-            <button
-              onClick={() => handleRejectRecommendation(donation._id)}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm"
-            >
-              ❌ Reject
+          <div className="flex gap-4 mb-8">
+            <button onClick={() => setSelectedTab('requests')} className={`px-4 py-2 rounded-full ${selectedTab === 'requests' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>📋 My Requests</button>
+            <button onClick={() => setSelectedTab('recommendations')} className={`px-4 py-2 rounded-full ${selectedTab === 'recommendations' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+              🔔 Volunteer Notifications {recommendedDonations.length > 0 && (<span className="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{recommendedDonations.length}</span>)}
             </button>
           </div>
+
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 border rounded">
+              <option value="">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Completed">Completed</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+            <select value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value)} className="p-2 border rounded">
+              <option value="">All Urgencies</option>
+              <option value="Normal">Normal</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="p-2 border rounded">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <button onClick={() => { setStatusFilter(''); setUrgencyFilter(''); setSortOrder('newest'); }} className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">🔄 Reset Filters</button>
           </div>
-        ))}
-        
-      </div>
-    )}
-  </>
-)}
+        </div>
+
+        {/* Tabs Content */}
+        {selectedTab === 'recommendations' ? (
+          <>
+            <h2 className="text-2xl font-bold text-green-700 mb-4">🔔 Volunteer Recommendations</h2>
+            {loading ? (
+              <p className="text-gray-500">Loading volunteer notifications...</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {uniqueRecommendations.filter(d => d.status !== 'Accepted').map((donation) => (
+                  <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+                    <div className="text-gray-700 space-y-1 mb-2">
+                      <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
+                      <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
+                      <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <button onClick={() => handleAcceptRecommendation(donation._id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">✅ Accept</button>
+                      <button onClick={() => handleRejectRecommendation(donation._id)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm">❌ Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <h2 className="text-2xl font-bold text-green-700 mt-10 mb-4">🚚 My Accepted Pickups</h2>
+            {uniqueRecommendations.filter(d => d.status === 'Accepted').length === 0 ? (
+  <p className="text-gray-500">No accepted pickups yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {uniqueRecommendations.filter((donation) => donation.status === 'Accepted').map((donation) => (
+                  <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+                    <div className="text-gray-700 space-y-1 mb-2">
+                      <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
+                      <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
+                      <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
+                    </div>
+                    <button onClick={() => markAsDelivered(donation._id)} className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">✅ Mark as Delivered</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
+            {loading ? (
+              <p className="text-gray-500">Loading requests...</p>
+            ) : filteredRequests.length === 0 ? (
+              <p className="text-gray-500">No requests found.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredRequests.map((req) => (
+                  <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+                    <div className="text-gray-700 space-y-1 mb-2">
+                      <div className="flex items-center gap-2 text-xl font-semibold text-green-700">
+                        <FaBoxOpen /> {req.foodType || 'N/A'}
+                      </div>
+                      <p className="flex items-center gap-2">🍽️ <span className="font-medium">Food Item:</span> {req.foodItem}</p>
+                      <p className="flex items-center gap-2">🕒 <span className="font-medium">Quantity:</span> {req.quantity}</p>
+                      <p className={`flex items-center gap-2 ${req.urgency === 'Urgent' ? 'text-red-600 font-semibold' : ''}`}>🚩 <span className="font-medium">Urgency:</span> {req.urgency}</p>
+                      {req.preferredDate && (<p className="flex items-center gap-2">📅 <span className="font-medium">Preferred:</span> {new Date(req.preferredDate).toLocaleDateString()}</p>)}
+                      {req.specialNotes && (<p className="flex items-start gap-2 text-gray-500 italic">📝 {req.specialNotes}</p>)}
+                    </div>
+                    {req.ngoDetails?.address && (<p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>)}
+                    {req.ngoDetails?.name && (<p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>)}
+                    <span className={`inline-block px-3 py-1 rounded-full text-white text-sm mt-3 ${req.status === 'Pending' ? 'bg-blue-500' : req.status === 'Picked' ? 'bg-yellow-500' : req.status === 'Delivered' ? 'bg-green-600' : 'bg-gray-400'}`}>{req.status}</span>
+                    {req.status === 'Accepted' && req.donation && (
+                      <button onClick={() => markAsDelivered(req._id)} className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">✅ Mark as Delivered</button>
+                    )}
+                    <button onClick={() => handleClone(req)} className="text-green-600 hover:text-green-800 mt-2 text-sm block">🔁 Request Again</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
