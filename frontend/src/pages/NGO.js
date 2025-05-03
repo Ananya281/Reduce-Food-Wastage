@@ -19,6 +19,10 @@ const NGO = () => {
   });
   const [selectedTab, setSelectedTab] = useState('requests');
   const [recommendedDonations, setRecommendedDonations] = useState([]);
+  const uniqueRecommendations = recommendedDonations.filter(
+    (value, index, self) =>
+      index === self.findIndex((v) => v._id === value._id)
+  );  
   
 
   const navigate = useNavigate();
@@ -191,14 +195,21 @@ const [sortOrder, setSortOrder] = useState('newest');
 
   const handleAcceptRecommendation = async (donationId) => {
     try {
+      const ngoId = localStorage.getItem('userId');
+  
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/accept-recommendation/${donationId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ngoId })
       });
+  
       const data = await res.json();
       if (res.ok) {
         toast.success('✅ Recommendation Accepted!');
-        fetchRecommendedDonations(); // Refresh
-        fetchRequests(); // Optional, refresh requests if needed
+        fetchRecommendedDonations();
+        fetchRequests();
       } else {
         toast.error(data.error || '❌ Failed to accept recommendation');
       }
@@ -208,15 +219,23 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
   
+  
   const handleRejectRecommendation = async (donationId) => {
     try {
+      const ngoId = localStorage.getItem('userId');
+  
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/reject-recommendation/${donationId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ngoId })
       });
+  
       const data = await res.json();
       if (res.ok) {
         toast.success('❌ Recommendation Rejected');
-        fetchRecommendedDonations(); // Refresh
+        fetchRecommendedDonations();
       } else {
         toast.error(data.error || '❌ Failed to reject recommendation');
       }
@@ -224,7 +243,8 @@ const [sortOrder, setSortOrder] = useState('newest');
       console.error('Error rejecting recommendation:', error);
       toast.error('❌ Server error while rejecting');
     }
-  };  
+  };
+  
 
   const filteredRequests = requests
   .filter(req =>
@@ -447,8 +467,7 @@ const [sortOrder, setSortOrder] = useState('newest');
       <p className="text-gray-500">No volunteer recommendations pending.</p>
     ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {recommendedDonations.map((donation) => (
-          <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+      {uniqueRecommendations.map((donation, index) => (          <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
             <div className="text-gray-700 space-y-1 mb-2">
               <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
               <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>

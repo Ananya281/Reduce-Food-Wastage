@@ -294,12 +294,113 @@ const Register = () => {
 
   {/* 🌐 Existing NGO fields remain unchanged below this */}
   {formData.role === 'NGOs' && (
-    <>
-      <input name="ngoName" placeholder="NGO Name" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-      <input name="ngoRegNumber" placeholder="Registration Number" className="w-full p-3 mb-4 border rounded" onChange={handleChange} />
-      {/* ...keep all NGO fields here as is */}
-    </>
-  )}
+  <>
+    <input
+      name="ngoName"
+      placeholder="NGO Name"
+      className="w-full p-3 mb-4 border rounded"
+      onChange={handleChange}
+    />
+    <input
+      name="ngoRegNumber"
+      placeholder="Registration Number"
+      className="w-full p-3 mb-4 border rounded"
+      onChange={handleChange}
+    />
+
+    <select
+      name="ngoType"
+      value={formData.ngoType}
+      onChange={handleChange}
+      className="w-full p-3 mb-4 border rounded"
+    >
+      <option value="">Select NGO Type</option>
+      <option value="Orphanage">Orphanage</option>
+      <option value="Old Age Home">Old Age Home</option>
+      <option value="Community Kitchen">Community Kitchen</option>
+      <option value="Relief NGO">Relief NGO</option>
+      <option value="Education Support">Education Support</option>
+      <option value="Women Welfare">Women Welfare</option>
+    </select>
+
+    <input
+      name="dailyFoodNeed"
+      type="number"
+      placeholder="Daily Food Requirement (No. of Meals)"
+      className="w-full p-3 mb-4 border rounded"
+      onChange={handleChange}
+    />
+
+    <div className="mb-4">
+      <label htmlFor="ngoAddress" className="text-sm font-medium block mb-1">NGO Address</label>
+      <div className="flex items-center gap-2">
+        <input
+          name="ngoAddress"
+          id="ngoAddress"
+          placeholder="Address"
+          value={formData.ngoAddress}
+          className="flex-1 p-3 border rounded"
+          onChange={handleChange}
+        />
+        <button
+          type="button"
+          disabled={isLocating}
+          onClick={handleAutoFillLocation}
+          className={`text-sm px-3 py-2 border rounded transition ${
+            isLocating
+              ? 'bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed'
+              : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
+          }`}
+        >
+          {isLocating ? 'Fetching...' : '📍 Use Location'}
+        </button>
+      </div>
+    </div>
+
+    <div className="mb-4">
+      <label className="text-sm font-medium block mb-1">Operating Days</label>
+      <div className="flex flex-wrap gap-2">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+          <label key={day} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={formData.ngoOperatingDays.includes(day)}
+              onChange={() => handleDayChange(day)}
+            />
+            {day}
+          </label>
+        ))}
+      </div>
+    </div>
+
+    <div className="flex gap-4 mb-4">
+      <input
+        name="ngoStartTime"
+        type="time"
+        value={formData.ngoStartTime}
+        onChange={handleChange}
+        className="w-full p-3 border rounded"
+        placeholder="Start Time"
+      />
+      <input
+        name="ngoEndTime"
+        type="time"
+        value={formData.ngoEndTime}
+        onChange={handleChange}
+        className="w-full p-3 border rounded"
+        placeholder="End Time"
+      />
+    </div>
+
+    <input
+      name="website"
+      placeholder="Website (optional)"
+      className="w-full p-3 mb-4 border rounded"
+      onChange={handleChange}
+    />
+  </>
+)}
+
 
   <button
   onClick={handleRegister}

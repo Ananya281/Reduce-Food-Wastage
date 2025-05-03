@@ -361,73 +361,114 @@ router.patch('/review-recommended/:requestId', async (req, res) => {
 router.patch('/accept-recommendation/:donationId', async (req, res) => {
   try {
     const { donationId } = req.params;
+    const { ngoId } = req.body;
 
-    const donation = await Donation.findById(donationId);
+    console.log('🔍 Accepting Recommendation:', { donationId, ngoId });
 
-    if (!donation) {
-      return res.status(404).json({ error: 'Donation not found' });
+    if (!mongoose.Types.ObjectId.isValid(donationId) || !mongoose.Types.ObjectId.isValid(ngoId)) {
+      return res.status(400).json({ error: 'Invalid donationId or ngoId' });
     }
 
-    donation.status = 'Confirmed';  // ✅ Update status (You can name it 'Confirmed for Delivery' etc.)
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ error: 'Donation not found' });
+
+    donation.status = 'Confirmed';
     await donation.save();
 
-    return res.json({ success: true, message: 'Recommendation accepted' });
+    const ngoRequest = await NgoRequest.findOne({ donation: donation._id, ngo: ngoId });
+
+    if (!ngoRequest) {
+      console.warn('⚠️ No NgoRequest found for donation:', donation._id, 'and ngo:', ngoId);
+      return res.status(404).json({ error: 'No matching NGO request found' });
+    }
+
+    ngoRequest.status = 'Accepted';
+    await ngoRequest.save();
+
+    console.log('✅ Recommendation accepted for NGO:', ngoId);
+    return res.status(200).json({ success: true, message: 'Recommendation accepted' });
   } catch (error) {
-    console.error('Error accepting recommendation:', error);
+    console.error('❌ Error in accept-recommendation:', error);
     res.status(500).json({ error: 'Failed to accept recommendation' });
   }
 });
+
+
+
 
 // 🛠 NGO Rejects the volunteer recommendation
 router.patch('/reject-recommendation/:donationId', async (req, res) => {
   try {
     const { donationId } = req.params;
+    const { ngoId } = req.body;
 
-    const donation = await Donation.findById(donationId);
-
-    if (!donation) {
-      return res.status(404).json({ error: 'Donation not found' });
+    if (!mongoose.Types.ObjectId.isValid(donationId) || !mongoose.Types.ObjectId.isValid(ngoId)) {
+      return res.status(400).json({ error: 'Invalid donationId or ngoId' });
     }
 
-    // If rejected ➔ Clear NGO link and set back to Available
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ error: 'Donation not found' });
+
     donation.ngoDetails = undefined;
-    donation.status = 'Available'; // again make it available for volunteers
+    donation.status = 'Available';
     await donation.save();
 
-    return res.json({ success: true, message: 'Recommendation rejected' });
+    const ngoRequest = await NgoRequest.findOne({ donation: donation._id, ngo: ngoId });
+
+    if (!ngoRequest) {
+      console.warn('⚠️ No NgoRequest found for this donation and NGO');
+      return res.status(404).json({ error: 'No matching NGO request found' });
+    }
+
+    ngoRequest.status = 'Rejected';
+    await ngoRequest.save();
+
+    return res.status(200).json({ success: true, message: 'Recommendation rejected' });
   } catch (error) {
-    console.error('Error rejecting recommendation:', error);
+    console.error('❌ Error in reject-recommendation:', error.message);
     res.status(500).json({ error: 'Failed to reject recommendation' });
   }
 });
+
 
 
 // ============================
 // ✅ Recommended Donations API (Example)
 // /api/requests/recommended?ngo=NGO_ID
 // ============================
+// ✅ Get recommended donations made for this NGO
 router.get('/recommended', async (req, res) => {
   try {
     const { ngo } = req.query;
 
-    console.log("📥 Incoming NGO ID for recommendations:", ngo); // 🔍 debug line
+    console.log("📥 Incoming NGO ID for recommendations:", ngo);
 
     if (!ngo || !mongoose.Types.ObjectId.isValid(ngo)) {
       return res.status(400).json({ error: 'Valid NGO ID is required.' });
     }
 
-    // Example logic: Get available donations that are NOT already linked to any request
-    const recommendedDonations = await Donation.find({
-      status: 'Available',
-      ngoRequest: null // optional if you store request ID in Donation
-    }).sort({ createdAt: -1 }).limit(5); // customize logic as needed
+    const recommendations = await NgoRequest.find({ ngo, status: 'Pending' })
+      .populate({
+        path: 'donation',
+        select: 'foodItem quantity foodType'
+      });
 
-    res.status(200).json(recommendedDonations);
+    const formatted = recommendations
+      .filter(r => r.donation) // ensure donation still exists
+      .map(r => ({
+        _id: r.donation._id,
+        foodItem: r.donation.foodItem,
+        quantity: r.donation.quantity,
+        foodType: r.donation.foodType
+      }));
+
+    res.status(200).json(formatted);
   } catch (error) {
     console.error('❌ Error fetching recommended donations:', error.message);
     res.status(500).json({ error: 'Server error while fetching recommendations.' });
   }
 });
+
 
 
 module.exports = router;

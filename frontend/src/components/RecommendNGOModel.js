@@ -9,26 +9,35 @@ const RecommendNGOModal = ({ pickup, onClose, onNgoSelected }) => {
   useEffect(() => {
     const fetchNearbyNgos = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/ngos/nearby`, {
+        const [lng, lat] = pickup.coordinates?.coordinates || [];
+        console.log('📍 Sending coordinates:', lat, lng); // Debug log
+  
+        const res = await fetch(`${BACKEND_URL}/api/volunteers/nearby-ngos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            location: [pickup.coordinates.lat, pickup.coordinates.lng] // ✅ Correct body format
+            coordinates: { lat, lng } // ✅ Correct structure expected by backend
           })
         });
+  
         const data = await res.json();
         if (Array.isArray(data)) {
           setNearbyNgos(data);
+        } else {
+          console.warn('Unexpected response for NGOs:', data);
         }
       } catch (error) {
-        console.error('Failed to fetch nearby NGOs', error);
+        console.error('❌ Failed to fetch nearby NGOs', error);
       }
     };
-
-    if (pickup?.coordinates) {
+  
+    if (Array.isArray(pickup?.coordinates?.coordinates) && pickup.coordinates.coordinates.length === 2) {
       fetchNearbyNgos();
+    } else {
+      console.warn('⚠️ No valid pickup coordinates found:', pickup?.coordinates);
     }
   }, [pickup, BACKEND_URL]);
+  
 
   const handleSubmit = async () => {
     if (!selectedNgoId) return;

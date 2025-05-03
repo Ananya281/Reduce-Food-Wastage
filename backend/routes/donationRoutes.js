@@ -63,11 +63,12 @@ router.post('/', async (req, res) => {
       if (ngoRequest) {
         console.log("✅ NGO Request found.");
         ngoDetails = {
+          _id: ngoRequest.receiver?._id,
           name: ngoRequest.receiver?.ngoName || '',
           address: ngoRequest.receiver?.ngoAddress || '',
           type: ngoRequest.receiver?.ngoType || '',
           contactEmail: ngoRequest.receiver?.email || ''
-        };
+        };        
       } else {
         console.log("⚠️ NGO Request not found for ID:", ngoRequestId);
       }
@@ -402,5 +403,44 @@ router.get('/feedbacks', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch feedbacks' });
   }
 });
+
+// ============================
+// 🧾 Get Donations Assigned to a Specific NGO
+// ============================
+router.get('/assigned/:ngoId', async (req, res) => {
+  const { ngoId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(ngoId)) {
+    return res.status(400).json({ error: 'Invalid NGO ID' });
+  }
+
+  try {
+    const donations = await Donation.find({
+      $or: [
+        { 'ngoRequest': { $ne: null } },
+        { 'ngoDetails': { $ne: null } }
+      ]
+    })
+      .populate('ngoRequest')
+      .populate({
+        path: 'ngoRequest',
+        populate: { path: 'receiver' }
+      });
+
+    // ✅ Filter to only include donations linked to this NGO
+    const filtered = donations.filter(d => {
+      const requestMatch = d.ngoRequest?.receiver?._id?.toString() === ngoId;
+      const directMatch = d.ngoDetails?._id?.toString() === ngoId;
+      return requestMatch || directMatch;
+    });
+      
+
+    res.status(200).json(filtered);
+  } catch (err) {
+    console.error("❌ Error fetching assigned donations:", err);
+    res.status(500).json({ error: 'Failed to fetch assigned donations' });
+  }
+});
+
 
 module.exports = router;

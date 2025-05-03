@@ -141,4 +141,6 @@ userSchema.post('save', function (error, doc, next) {
   }
 });
 
+userSchema.index({ locationCoordinates: '2dsphere' });
+
 module.exports = mongoose.model('User', userSchema);

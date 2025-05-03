@@ -4,9 +4,43 @@ const Volunteer = require('../models/Volunteer');
 const Donation = require('../models/Donation');
 const Pickup = require('../models/Pickup');
 const NgoRequest = require('../models/NgoRequest'); // ✅ Import the new model
+const nodemailer = require('nodemailer');
 
+const User = require('../models/User'); // already exists
 
 const router = express.Router();
+
+router.post('/nearby-ngos', async (req, res) => {
+  try {
+    const { coordinates } = req.body;
+
+    if (
+      !coordinates ||
+      typeof coordinates.lat !== 'number' ||
+      typeof coordinates.lng !== 'number'
+    ) {
+      return res.status(400).json({ error: 'Invalid or missing coordinates' });
+    }
+
+    const nearbyNGOs = await User.find({
+      role: 'NGOs',
+      locationCoordinates: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [coordinates.lng, coordinates.lat],
+          },
+          $maxDistance: 5000,
+        },
+      },
+    }).select('ngoName ngoAddress contactNumber email locationCoordinates');
+
+    res.json(nearbyNGOs);
+  } catch (err) {
+    console.error('❌ Error fetching nearby NGOs:', err.message);
+    res.status(500).json({ error: 'Failed to fetch nearby NGOs' });
+  }
+});
 
 /**
  * 🔐 Register a new volunteer
@@ -247,27 +281,81 @@ router.patch('/recommend-ngo/:donationId', async (req, res) => {
 
 
 // 📍 Volunteer recommends an NGO for a donation
+// Add this to volunteerRoutes.js or relevant router
 router.post('/request-ngo', async (req, res) => {
-  try {
-    const { volunteerId, donationId, ngoId } = req.body;
+  const { volunteerId, donationId, ngoId } = req.body;
 
-    if (!volunteerId || !donationId || !ngoId) {
-      return res.status(400).json({ error: 'Missing required fields' });
+  if (!volunteerId || !donationId || !ngoId) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  try {
+    const ngo = await User.findById(ngoId);
+    if (!ngo || ngo.role !== 'NGOs') {
+      return res.status(404).json({ error: "NGO not found." });
     }
 
-    const newRequest = new NgoRequest({
-      volunteer: volunteerId,
-      donation: donationId,
-      ngo: ngoId
+    const donation = await Donation.findById(donationId);
+    console.log("NGO:", ngo); // ✅ Good
+console.log("Donation:", donation); // ✅ Good
+    if (!donation) {
+      return res.status(404).json({ error: "Donation not found." });
+    }
+
+    // ✅ Update donation with NGO details
+    donation.ngoDetails = {
+      ngoId: ngo._id,
+      ngoName: ngo.ngoName,
+      ngoEmail: ngo.email,
+      ngoContact: ngo.contactNumber,
+    };
+    await donation.save();
+    
+
+    // ✅ Create a corresponding NGO Request so it appears in NGO Dashboard
+    await NgoRequest.create({
+      receiver: ngo._id,
+      ngo: ngo._id, // ✅ REQUIRED FIELD
+      volunteer: volunteerId, // ✅ REQUIRED FIELD
+      foodItem: donation.foodItem,
+      foodType: donation.foodType,
+      quantity: donation.quantity,
+      urgency: 'Medium', // You can make this dynamic if needed
+      preferredDate: new Date(), // or make it flexible
+      location: donation.location,
+      status: 'Pending',
+      createdBy: volunteerId,       // track which volunteer submitted this
+      donation: donation._id        // optional back-reference
     });
 
-    await newRequest.save();
+    // ✅ Send Email to NGO
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
 
-    res.json({ success: true, message: 'NGO recommendation request submitted.' });
-  } catch (error) {
-    console.error('Error submitting NGO request:', error);
-    res.status(500).json({ error: 'Failed to submit NGO recommendation request' });
+    await transporter.sendMail({
+      from: `"Reduce Food Wastage" <${process.env.GMAIL_USER}>`,
+      to: ngo.email,
+      subject: `🍽️ New Donation Recommended`,
+      html: `
+        <p>Dear ${ngo.ngoName},</p>
+        <p>A donation has been assigned to your NGO. Please check the dashboard and respond to the request.</p>
+        <p>Thanks,<br/>Reduce Food Wastage Team</p>
+      `
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error in /request-ngo:", err);
+    res.status(500).json({ error: "Internal Server Error while recommending NGO." });
   }
 });
+
+
+
 
 module.exports = router;
