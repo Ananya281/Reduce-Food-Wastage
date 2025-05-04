@@ -534,9 +534,13 @@ donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
 
 {/* Top Badge */}
 <div className="mb-4">
-  {donation.ngoDetails ? (
+  {donation.ngoDetails?.name ? (
     <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
-      🎯 Donated to NGO : {donation.ngoDetails.name || 'NGO'}
+      🎯 Donated to NGO : <strong>{donation.ngoDetails.name}</strong>
+    </span>
+  ) : donation.ngoRequestId ? (
+    <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
+      🎯 Donated via NGO Request
     </span>
   ) : (
     <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
@@ -544,6 +548,7 @@ donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
     </span>
   )}
 </div>
+
 
 {/* Food Item */}
 <h3 className="text-xl md:text-2xl font-bold text-green-700 mb-2 flex items-center gap-2">

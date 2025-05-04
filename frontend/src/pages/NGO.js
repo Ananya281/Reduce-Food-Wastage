@@ -317,7 +317,11 @@ const [sortOrder, setSortOrder] = useState('newest');
           <div className="flex gap-4 mb-8">
             <button onClick={() => setSelectedTab('requests')} className={`px-4 py-2 rounded-full ${selectedTab === 'requests' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>📋 My Requests</button>
             <button onClick={() => setSelectedTab('recommendations')} className={`px-4 py-2 rounded-full ${selectedTab === 'recommendations' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
-              🔔 Volunteer Notifications {recommendedDonations.length > 0 && (<span className="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{recommendedDonations.length}</span>)}
+              🔔 Volunteer Notifications {uniqueRecommendations.filter(d => d.status === 'Pending').length > 0 && (
+  <span className="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+    {uniqueRecommendations.filter(d => d.status === 'Pending').length}
+  </span>
+)}
             </button>
           </div>
 
@@ -346,45 +350,51 @@ const [sortOrder, setSortOrder] = useState('newest');
         {/* Tabs Content */}
         {selectedTab === 'recommendations' ? (
           <>
-            <h2 className="text-2xl font-bold text-green-700 mb-4">🔔 Volunteer Recommendations</h2>
-            {loading ? (
-              <p className="text-gray-500">Loading volunteer notifications...</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {uniqueRecommendations.filter(d => d.status !== 'Accepted').map((donation) => (
-                  <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
-                    <div className="text-gray-700 space-y-1 mb-2">
-                      <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
-                      <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
-                      <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <button onClick={() => handleAcceptRecommendation(donation._id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">✅ Accept</button>
-                      <button onClick={() => handleRejectRecommendation(donation._id)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm">❌ Reject</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+  <h2 className="text-2xl font-bold text-green-700 mb-4">🔔 Volunteer Recommendations</h2>
+  {loading ? (
+    <p className="text-gray-500">Loading volunteer notifications...</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {uniqueRecommendations.filter(d => d.status === 'Pending').map((donation) => (
+        <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+          <div className="text-gray-700 space-y-1 mb-2">
+            <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
+            <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
+            <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={() => handleAcceptRecommendation(donation._id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">✅ Accept</button>
+            <button onClick={() => handleRejectRecommendation(donation._id)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm">❌ Reject</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
 
-            <h2 className="text-2xl font-bold text-green-700 mt-10 mb-4">🚚 My Accepted Pickups</h2>
-            {uniqueRecommendations.filter(d => d.status === 'Accepted').length === 0 ? (
-  <p className="text-gray-500">No accepted pickups yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {uniqueRecommendations.filter((donation) => donation.status === 'Accepted').map((donation) => (
-                  <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
-                    <div className="text-gray-700 space-y-1 mb-2">
-                      <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
-                      <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
-                      <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
-                    </div>
-                    <button onClick={() => markAsDelivered(donation._id)} className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">✅ Mark as Delivered</button>
-                  </div>
-                ))}
-              </div>
+  <h2 className="text-2xl font-bold text-green-700 mt-10 mb-4">🚚 My Pickups</h2>
+  {uniqueRecommendations.filter(d => d.status === 'Accepted' || d.status === 'Delivered').length === 0 ? (
+    <p className="text-gray-500">No pickups yet.</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {uniqueRecommendations
+        .filter((donation) => donation.status === 'Accepted' || donation.status === 'Delivered')
+        .map((donation) => (
+          <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+            <div className="text-gray-700 space-y-1 mb-2">
+              <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
+              <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
+              <p className="flex items-center gap-2">📦 Food Type: {donation.foodType}</p>
+              <p className="flex items-center gap-2">📌 Status: {donation.status}</p>
+            </div>
+            {donation.status === 'Accepted' && (
+              <button onClick={() => markAsDelivered(donation._id)} className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">✅ Mark as Delivered</button>
             )}
-          </>
+          </div>
+        ))}
+    </div>
+  )}
+</>
+
         ) : (
           <>
             <h2 className="text-2xl font-bold text-green-700 mb-4">Submitted Requests</h2>
