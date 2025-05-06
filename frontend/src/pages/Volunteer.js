@@ -326,14 +326,20 @@ const Volunteer = () => {
                 </span>
 
                 {/* ✨ Recommend NGO Button */}
-                {pickup.status === 'Picked' && !pickup.ngoDetails && (
-                  <button
-                    onClick={() => handleRecommendNGO(pickup)}
-                    className="mt-2 block bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded-full transition duration-200"
-                  >
-                    Recommend NGO
-                  </button>
-                )}
+                {pickup.status === 'Picked' &&
+  !pickup.ngo &&
+  !(pickup.ngoRequest && (typeof pickup.ngoRequest === 'string' || pickup.ngoRequest._id)) &&
+  !(pickup.ngoDetails && pickup.ngoDetails.ngoId) && (
+    <button
+      onClick={() => handleRecommendNGO(pickup)}
+      className="mt-2 block bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded-full transition duration-200"
+    >
+      Recommend NGO
+    </button>
+)}
+
+
+
               </>
             )}
           </div>

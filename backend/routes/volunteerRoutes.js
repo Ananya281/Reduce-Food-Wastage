@@ -149,12 +149,12 @@ router.get('/:id/pickups', async (req, res) => {
   try {
     const pickups = await Pickup.find({ volunteer: volunteerId }).populate({
       path: 'donation',
-      populate: {
-        path: 'donor',
-        select: 'fullName contactNumber'
-      },
-      select: 'foodItem quantity location expiryDate status donor foodType pickupTimeStart pickupTimeEnd foodPreparedAt foodAvailableFrom servings isRefrigerated specialNotes coordinates'
+      populate: [
+        { path: 'donor', select: 'fullName contactNumber' }
+      ],
+      select: 'foodItem quantity location expiryDate status donor foodType pickupTimeStart pickupTimeEnd foodPreparedAt foodAvailableFrom servings isRefrigerated specialNotes coordinates ngoDetails'
     });
+    
 
     const formatted = pickups
       .filter(p => p.donation)
