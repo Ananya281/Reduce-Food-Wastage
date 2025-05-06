@@ -1,56 +1,91 @@
-# 🍽️ FoodSaver - Empower Communities, Feed the Needy
+<p align="center">
+  <img src="./MealBridge.png" alt="MealBridge Logo" width="100%" />
+</p>
+
+<h1 align="center">🍽️ MealBridge</h1>
+<h3 align="center">Empower Communities • Feed the Needy • Reduce Food Waste</h3>
+
+<p align="center">
+  <a href="#-about-the-project">About</a> • 
+  <a href="#-features">Features</a> • 
+  <a href="#-tech-stack">Tech Stack</a> • 
+  <a href="#-installation--setup">Installation</a> • 
+  <a href="#-screenshots">Screenshots</a> • 
+  <a href="#-contributing">Contributing</a> • 
+  <a href="#-license">License</a>
+</p>
 
 ---
 
 ## 📌 About the Project
 
-**FoodSaver** is a full-stack web application that connects **donors**, **NGOs**, and **volunteers** to manage and optimize the donation and distribution of surplus food.
+**MealBridge** is a full-stack MERN platform that connects **donors**, **NGOs**, and **volunteers** to optimize the collection and distribution of surplus food.
 
-This platform enables:
-- 🛆 Donors to post surplus food donations
-- 🏥 NGOs to request food for the needy
-- 🚗 Volunteers to handle pickups and deliveries
+Together, we aim to:
+- ♻️ **Reduce food wastage**
+- 🤝 **Bridge the gap** between food surplus and hunger
+- 🚛 **Streamline donation delivery**
 
-By streamlining the process, this initiative aims to **minimize food wastage** and **support underserved communities**.
+---
+
+## 🚀 Live Demo
+
+🔗 [Click to Visit MealBridge](https://mealbridge.vercel.app)
 
 ---
 
 ## ✨ Features
 
-- ✅ Role-based login and authentication (Donor, NGO, Volunteer)
-- ✅ Google Sign-In integration for quick access
-- ✅ Real-time donation and request management
-- ✅ Personalized dashboards for every user type
-- ✅ Volunteer recommendation based on:
-  - Distance from donation location
-  - Food type preference
-  - Time slot availability
-  - Urgency level
-  - Vehicle availability
-- ✅ Clean, mobile-friendly UI with **Tailwind CSS**
-- ✅ Dynamic routing and data fetching
+✅ **Role-based authentication**
+- Donor / NGO / Volunteer access
+- Google Sign-In supported
 
-> **Note:** Current recommendation system is **filter-based and rule-driven**, not ML-based, for transparency and efficiency. Future versions can incorporate ML for smart ranking.
+📦 **Donor Dashboard**
+- Create, edit, clone, and manage donations
+- Auto-location fill using OpenCage
+- Link donations to NGO requests
+
+🏥 **NGO Dashboard**
+- Request food with urgency & date
+- Edit, delete, and duplicate requests
+- Track request status: _Pending → Accepted → Completed_
+
+🚗 **Volunteer Dashboard**
+- View nearby donations on a map
+- Filter by distance, food type, urgency, time slot
+- Accept pickups, get optimized routes, submit feedback
+
+📍 **Smart Filtering & Location Awareness**
+- Auto-detect user location
+- Show distance and route to donor
+- Route planning via Leaflet Routing Machine
+
+🗺️ **Interactive Map Interface**
+- Separate NGO-tagged & general donations
+- Color-coded markers and donation filters
+
+💬 **Feedback System**
+- Volunteers submit ratings and comments after delivery
+- Feedback stored and linked to donations
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend:
+### 👨‍💻 Frontend:
 - React.js + React Router
 - Tailwind CSS
 - Google OAuth (`@react-oauth/google`)
 
-### Backend:
-- Node.js
-- Express.js
-- MongoDB (Mongoose)
-- JWT for secure authentication
+### 🧠 Backend:
+- Node.js + Express.js
+- MongoDB with Mongoose
+- JWT Authentication
 
-### Deployment:
-- Frontend: Vercel
-- Backend: Render
-- Database: MongoDB Atlas
+### ☁️ Deployment:
+- **Frontend**: Vercel  
+- **Backend**: Render  
+- **Database**: MongoDB Atlas
 
 ---
 

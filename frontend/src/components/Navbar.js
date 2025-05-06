@@ -42,7 +42,7 @@ const Navbar = () => {
       <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         {/* Logo */}
         <div className="text-2xl font-bold text-green-600 cursor-pointer" onClick={() => navigate('/')}>
-          FoodSaver
+          MealBridge
         </div>
 
         {/* Hamburger Menu Icon */}
