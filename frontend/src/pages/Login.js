@@ -93,6 +93,7 @@ const Login = () => {
           <input
             id="email"
             type="email"
+            name="email"
             placeholder="Email"
             className="w-full p-3 mb-4 border rounded"
             onChange={(e) => setEmail(e.target.value)}
@@ -101,6 +102,7 @@ const Login = () => {
           <input
             id="password"
             type="password"
+            name="password"
             placeholder="Password"
             className="w-full p-3 mb-4 border rounded"
             onChange={(e) => setPassword(e.target.value)}

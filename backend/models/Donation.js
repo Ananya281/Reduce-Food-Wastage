@@ -53,10 +53,10 @@ const donationSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  contactNumber: {
-    type: String,
-    match: /^\d{10}$/
-  },
+  // contactNumber: {
+  //   type: String,
+  //   match: /^\d{10}$/
+  // },
   storageInstructions: {
     type: String,
     trim: true
