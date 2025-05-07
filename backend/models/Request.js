@@ -87,4 +87,9 @@ requestSchema.pre('save', function (next) {
   next();
 });
 
+// ✅ Indexes added here
+requestSchema.index({ receiver: 1 });
+requestSchema.index({ donation: 1 });
+requestSchema.index({ "ngoDetails.locationCoordinates": "2dsphere" });
+
 module.exports = mongoose.model('Request', requestSchema);

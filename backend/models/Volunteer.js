@@ -27,4 +27,9 @@ const volunteerSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+//Indexing
+volunteerSchema.index({ user: 1 });
+volunteerSchema.index({ availability: 1 });
+volunteerSchema.index({ vehicleAvailable: 1 });
+
 module.exports = mongoose.model('Volunteer', volunteerSchema);

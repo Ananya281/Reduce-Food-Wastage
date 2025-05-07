@@ -15,4 +15,8 @@ const ngoRequestSchema = new mongoose.Schema({
   }
 });
 
+ngoRequestSchema.index({ ngo: 1 });        // ✅ NEW
+ngoRequestSchema.index({ volunteer: 1 });  // ✅ NEW
+ngoRequestSchema.index({ donation: 1 });   // ✅ NEW
+
 module.exports = mongoose.model('NgoRequest', ngoRequestSchema);

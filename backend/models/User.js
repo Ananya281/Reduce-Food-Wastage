@@ -143,4 +143,7 @@ userSchema.post('save', function (error, doc, next) {
 
 userSchema.index({ locationCoordinates: '2dsphere' });
 
+userSchema.index({ role: 1 }); // 🔍 Recommended
+// userSchema.index({ contactNumber: 1 }); // Optional
+
 module.exports = mongoose.model('User', userSchema);

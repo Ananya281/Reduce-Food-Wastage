@@ -24,4 +24,7 @@ const pickupSchema = new mongoose.Schema({
   }
 });
 
+pickupSchema.index({ volunteer: 1 });      // ✅ NEW
+pickupSchema.index({ donation: 1 });       // ✅ NEW
+
 module.exports = mongoose.model('Pickup', pickupSchema);

@@ -124,6 +124,9 @@ const donationSchema = new mongoose.Schema({
 // ✅ GeoIndex for spatial queries
 donationSchema.index({ coordinates: '2dsphere' });
 
+donationSchema.index({ donor: 1 });       // ✅ NEW
+donationSchema.index({ volunteer: 1 });   // ✅ NEW
+
 donationSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
