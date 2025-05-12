@@ -406,6 +406,18 @@ const [sortOrder, setSortOrder] = useState('newest');
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRequests.map((req) => (
                   <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+                  {req.status === 'Pending' && (
+    <div className="flex justify-end gap-4 mb-2 text-sm font-medium">
+      <button onClick={() => handleEdit(req)} className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+        ✏️ Edit
+      </button>
+      <button onClick={() => handleDelete(req._id)} className="text-red-600 hover:text-red-800 flex items-center gap-1">
+        🗑️ Delete
+      </button>
+    </div>
+  )}
+
+
                     <div className="text-gray-700 space-y-1 mb-2">
                       <div className="flex items-center gap-2 text-xl font-semibold text-green-700">
                         <FaBoxOpen /> {req.foodType || 'N/A'}
