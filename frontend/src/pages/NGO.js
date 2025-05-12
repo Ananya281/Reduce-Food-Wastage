@@ -356,7 +356,7 @@ const [sortOrder, setSortOrder] = useState('newest');
   ) : (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {uniqueRecommendations.filter(d => d.status === 'Pending').map((donation) => (
-        <div key={donation._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+        <div key={donation._id} className="card bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
           <div className="text-gray-700 space-y-1 mb-2">
             <h3 className="text-xl font-semibold text-green-700">{donation.foodItem}</h3>
             <p className="flex items-center gap-2">🍽️ Quantity: {donation.quantity}</p>
