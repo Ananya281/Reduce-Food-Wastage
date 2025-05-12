@@ -405,7 +405,7 @@ const [sortOrder, setSortOrder] = useState('newest');
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRequests.map((req) => (
-                  <div key={req._id} className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
+                  <div key={req._id} className="ngo-request-card bg-white p-5 rounded-xl shadow border hover:shadow-lg transition">
                   {req.status === 'Pending' && (
     <div className="flex justify-end gap-4 mb-2 text-sm font-medium">
       <button onClick={() => handleEdit(req)} className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
