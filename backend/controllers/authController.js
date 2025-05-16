@@ -24,6 +24,8 @@ exports.register = async (req, res) => {
       password,
       role,
       contactNumber,
+      donorAddress,
+      volunteerAddress,
       location,
       address,
       vehicleAvailable,
@@ -62,7 +64,15 @@ exports.register = async (req, res) => {
       ) {
         return res.status(400).json({ error: 'Please fill all required NGO details' });
       }
-    }    
+    }  
+    if (role === 'Volunteer' && !volunteerAddress) {
+  return res.status(400).json({ error: 'Please enter volunteer address' });
+}
+
+if (role === 'Donor' && !donorAddress) {
+  return res.status(400).json({ error: 'Please enter donor address' });
+}
+  
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
@@ -77,6 +87,8 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       role,
       contactNumber,
+      donorAddress,
+      volunteerAddress,
       location,
       address,
       vehicleAvailable,

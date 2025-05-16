@@ -38,6 +38,12 @@ const Volunteer = () => {
   const [filters, setFilters] = useState({
     foodType: '', urgency: '', timeSlot: '', vehicleAvailable: '', maxDistance: '',
   });
+  const [pickupFilters, setPickupFilters] = useState({
+  status: '',
+  foodType: '',
+  search: '',
+  sort: '', // 'newest' or 'oldest'
+});
 
   const mapRef = useRef();
   const routingRef = useRef();
@@ -94,16 +100,46 @@ const Volunteer = () => {
       toast.error("❌ Failed to fetch donations");
     }
   };
+  console.log("Volunteer ID:", volunteerId);
 
   const fetchVolunteerPickups = async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/volunteers/${volunteerId}/pickups`);
       const data = await res.json();
+      console.log("Fetched pickups:", data); // ✅ Add this line
       setMyPickups(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("❌ Failed to fetch pickups");
     }
   };
+
+  const filterMyPickups = () => {
+  let filtered = [...myPickups];
+  console.log("Showing pickups without filter:", myPickups);
+
+  if (pickupFilters.status) {
+    filtered = filtered.filter(p => p.status === pickupFilters.status);
+  }
+
+  if (pickupFilters.foodType) {
+    filtered = filtered.filter(p => p.foodType === pickupFilters.foodType);
+  }
+
+  if (pickupFilters.search) {
+    filtered = filtered.filter(p =>
+      p.foodItem.toLowerCase().includes(pickupFilters.search.toLowerCase())
+    );
+  }
+
+  if (pickupFilters.sort === 'newest') {
+    filtered.sort((a, b) => new Date(b.acceptedAt) - new Date(a.acceptedAt));
+  } else if (pickupFilters.sort === 'oldest') {
+    filtered.sort((a, b) => new Date(a.acceptedAt) - new Date(b.acceptedAt));
+  }
+
+  return filtered;
+};
+
 
   const fetchAvailability = async () => {
     try {
@@ -220,6 +256,8 @@ const Volunteer = () => {
 
         <p className="text-sm text-gray-600 mb-2">📍 Your Location: {locationName}</p>
 
+        
+
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
             <select name="foodType" value={filters.foodType} onChange={handleFilterChange} className="p-2 border rounded">
@@ -277,24 +315,57 @@ const Volunteer = () => {
         </MapContainer>
         <div className="text-right mt-2">
         
-        <div className="text-right mt-2 flex justify-end gap-4">
-  <button
-    onClick={() => navigate('/volunteer/ngodonations')}
-    className="text-green-600 hover:underline text-sm"
-  >
-    🎯 View NGO Request Donations
-  </button>
-
+<div className="flex justify-end mb-6">
   <button
     onClick={() => navigate('/volunteer/alldonations')}
-    className="text-blue-600 hover:underline text-sm"
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
   >
     📋 View All Donations
   </button>
-  <button onClick={() => navigate('/volunteer/expired-donations')}>
-  🛑 View Expired Donations
-</button>
 </div>
+
+</div>
+<div className="flex flex-wrap gap-4 mb-4">
+  <select
+    value={pickupFilters.status}
+    onChange={(e) => setPickupFilters({ ...pickupFilters, status: e.target.value })}
+    className="p-2 border rounded"
+  >
+    <option value="">All Status</option>
+    <option value="Picked">Picked</option>
+    <option value="Delivered">Delivered</option>
+  </select>
+
+  <select
+    value={pickupFilters.foodType}
+    onChange={(e) => setPickupFilters({ ...pickupFilters, foodType: e.target.value })}
+    className="p-2 border rounded"
+  >
+    <option value="">All Food Types</option>
+    <option value="Veg">Veg</option>
+    <option value="Non-Veg">Non-Veg</option>
+    <option value="Snacks">Snacks</option>
+    <option value="Drinks">Drinks</option>
+    <option value="Packaged">Packaged</option>
+  </select>
+
+  <input
+    type="text"
+    placeholder="Search by food item"
+    value={pickupFilters.search}
+    onChange={(e) => setPickupFilters({ ...pickupFilters, search: e.target.value })}
+    className="p-2 border rounded w-52"
+  />
+
+  <select
+    value={pickupFilters.sort}
+    onChange={(e) => setPickupFilters({ ...pickupFilters, sort: e.target.value })}
+    className="p-2 border rounded"
+  >
+    <option value="">Sort By</option>
+    <option value="newest">Newest Accepted</option>
+    <option value="oldest">Oldest Accepted</option>
+  </select>
 </div>
 
 {/* My Pickups Section */}
@@ -306,43 +377,43 @@ const Volunteer = () => {
   ) : (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {myPickups.map((pickup) => (
-          <div key={pickup._id} className="bg-gray-100 rounded p-4 shadow">
-            <h3 className="text-lg font-semibold text-gray-800">{pickup.foodItem}</h3>
-            <p className="text-sm text-gray-600">Location: {pickup.location}</p>
-            <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
-            <p className="text-sm text-gray-600">
-              Pickup Time: {pickup.pickupStartTime} - {pickup.pickupEndTime}
-            </p>
+{filterMyPickups().map((pickup) => (
+<div key={pickup._id} className="relative bg-gray-100 rounded p-4 shadow">
+  <h3 className="text-lg font-semibold text-gray-800">{pickup.foodItem}</h3>
+  <p className="text-sm text-gray-600">Location: {pickup.location}</p>
+  <p className="text-sm text-gray-600">Servings: {pickup.servings}</p>
+  <p className="text-sm text-gray-600">
+    Pickup Time: {pickup.pickupStartTime || '-'} - {pickup.pickupEndTime || '-'}
+  </p>
 
-            {pickup.status === 'Delivered' ? (
-              <span className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-                Delivered
-              </span>
-            ) : (
-              <>
-                <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
-                  Picked
-                </span>
+  <span className="mt-2 inline-block bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+    Picked
+  </span>
 
-                {/* ✨ Recommend NGO Button */}
-                {pickup.status === 'Picked' &&
-  !pickup.ngo &&
-  !(pickup.ngoRequest && (typeof pickup.ngoRequest === 'string' || pickup.ngoRequest._id)) &&
-  !(pickup.ngoDetails && pickup.ngoDetails.ngoId) && (
-    <button
-      onClick={() => handleRecommendNGO(pickup)}
-      className="mt-2 block bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded-full transition duration-200"
-    >
-      Recommend NGO
-    </button>
+  {/* ✅ Conditionally show Recommend NGO button */}
+{pickup.status === 'Picked' &&
+ !pickup.ngoRequestId && !pickup.ngoDetails && (
+  <button
+    onClick={() => handleRecommendNGO(pickup)}
+    className="mt-3 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+  >
+    Recommend NGO
+  </button>
 )}
 
 
+  {/* 🎯 Floating NGO tag */}
+{(pickup.ngoRequestId || pickup.ngoDetails) && (
+  <div className="absolute bottom-3 right-3">
+    <span className="inline-flex items-center bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
+      🎯 Already tagged to NGO
+    </span>
+  </div>
+)}
 
-              </>
-            )}
-          </div>
+</div>
+
+
         ))}
       </div>
 

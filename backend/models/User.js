@@ -46,6 +46,22 @@ const userSchema = new mongoose.Schema({
     match: [/^\d{10}$/, 'Contact number must be a valid 10-digit mobile number']
   },
 
+  donorAddress: {
+  type: String,
+  trim: true,
+  required: function () {
+    return this.role === 'Donor';
+  },
+},
+
+volunteerAddress: {
+  type: String,
+  trim: true,
+  required: function () {
+    return this.role === 'Volunteer';
+  },
+},
+
   // ✅ NGO-specific fields (only required if role === 'NGOs')
   ngoRegNumber: {
     type: String,

@@ -13,8 +13,6 @@ import Volunteer from './pages/Volunteer';
 import NGO from './pages/NGO';
 import AllDonationsPage from './pages/AllDonationsPage';
 import NGORequests from './pages/NGORequests'; // ✅ Added NGO Requests Page
-import NGODonationsPage from './pages/NGODonationsPage'; // ✅
-import ExpiredDonationsPage from './pages/ExpiredDonationsPage';
 
 // Service detail pages
 import FoodPickup from './pages/services/FoodPickup';
@@ -35,8 +33,6 @@ function App() {
         <Route path="/volunteer/alldonations" element={<AllDonationsPage />} />
         <Route path="/ngo" element={<NGO />} />
         <Route path="/ngo-requests" element={<NGORequests />} /> {/* ✅ New Route */}
-        <Route path="/volunteer/ngodonations" element={<NGODonationsPage />} />
-        <Route path="/volunteer/expired-donations" element={<ExpiredDonationsPage />} />
 
         {/* Services Detail Routes */}
         <Route path="/services/food-pickup" element={<FoodPickup />} />
