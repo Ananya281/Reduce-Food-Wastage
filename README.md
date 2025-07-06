@@ -30,7 +30,7 @@ Together, we aim to:
 
 ## 🚀 Live Demo
 
-🔗 [Click to Visit MealBridge](https://mealbridge.vercel.app)
+🔗 [Click to Visit MealBridge](https://reduce-food-wastage.vercel.app/)
 
 ---
 
