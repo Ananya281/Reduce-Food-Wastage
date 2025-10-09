@@ -6,10 +6,10 @@ const Hero = () => {
 
   const handleGetInvolved = () => {
     const role = localStorage.getItem('userRole');
-    const userId = localStorage.getItem('userId'); // ✅ Only check this
+    const userId = localStorage.getItem('userId'); // Only check this
 
     if (!role || !userId) {
-      navigate('/login'); // 🚫 Not logged in
+      navigate('/login'); //Not logged in
     } else if (role === 'Donor') {
       navigate('/donor');
     } else if (role === 'Volunteer') {

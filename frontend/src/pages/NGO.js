@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaBoxOpen, FaMapMarkerAlt, FaClock, FaFlag, FaTrash } from 'react-icons/fa';
+import { FaBoxOpen, FaMapMarkerAlt} from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -10,7 +10,7 @@ const NGO = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editRequestId, setEditRequestId] = useState(null);
   const [formData, setFormData] = useState({
-    foodItem: '', // ✅ Add this line
+    foodItem: '',
     foodType: '',
     quantity: '',
     urgency: 'Normal',
@@ -32,6 +32,7 @@ const [urgencyFilter, setUrgencyFilter] = useState('');
 const [sortOrder, setSortOrder] = useState('newest');
 
 
+//fetches all NGO's food requests from backend
   const fetchRequests = async () => {
     try {
       setLoading(true);
@@ -46,9 +47,12 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
 
+  //fetches volunteer recommendations for NGO
+  //NGO can accept or reject these recommendations
   const fetchRecommendedDonations = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/recommended?ngo=${receiverId}`);
+      //fetch all donations recommended to this ngo
       const data = await res.json();
       if (Array.isArray(data)) {
         setRecommendedDonations(data);  // This now includes pending + confirmed
@@ -60,66 +64,31 @@ const [sortOrder, setSortOrder] = useState('newest');
   };
   
 
+  //runs side effects after component renders
+  //receiverId comes from local storage, act as dependency
   useEffect(() => {
     if (receiverId) {
-      fetchRequests();
-      fetchRecommendedDonations(); // 🔥 Add this line!
+      fetchRequests();//ngo own submitted requests
+      fetchRecommendedDonations();//fetches volunteer recommendations
     }
-  }, [receiverId]);
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      return toast.error('❌ Geolocation is not supported by your browser.');
-    }
-  
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-  
-        try {
-          const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
-  
-          if (!apiKey) {
-            throw new Error("OpenCage API key is missing");
-          }
-  
-          const res = await fetch(
-            `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`
-          );
-  
-          if (!res.ok) throw new Error('Failed to fetch address');
-  
-          const data = await res.json();
-          const address = data.results[0]?.formatted || `${latitude}, ${longitude}`;
-  
-          setFormData(prev => ({ ...prev, location: address }));
-  
-          toast.success("📍 NGO Location auto-filled!");
-        } catch (error) {
-          console.error("Geocoding error:", error);
-          toast.error("❌ Failed to fetch location.");
-        }
-      },
-      (error) => {
-        console.warn("Location access denied:", error.message);
-        toast.error("❌ Unable to access your location.");
-      }
-    );
-  };
+  }, [receiverId]);//ngo user id
+//received id dependency ensures initial data load happens only for login ngo
+//other dynamic updates are handled by manual refresh after actions like submit, edit, delete, accept, reject
   
 
+  //handles form input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  //handles both new request submission and editing existing requests
   const handleSubmit = async (e) => {
     e.preventDefault();
     const url = `${process.env.REACT_APP_BACKEND_URL}/api/requests${isEditing ? `/${editRequestId}` : ''}`;
     const method = isEditing ? 'PATCH' : 'POST';
 
     try {
-      const { location, ...restFormData } = formData;
-      const payload = { ...restFormData, foodItem: formData.foodItem, receiver: receiverId };
+      const payload = { ...formData, receiver: receiverId };
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -147,6 +116,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
 
+  //deletes a request
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to cancel this request?");
     if (!confirmDelete) return;
@@ -168,6 +138,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
 
+  //pre-fills form with existing request data for editing
   const handleEdit = (req) => {
     setFormData({
       foodItem: req.foodItem,
@@ -180,6 +151,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     setEditRequestId(req._id);
     setIsEditing(true);
   };
+
 
   const handleClone = (req) => {
     setFormData({
@@ -194,6 +166,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     setEditRequestId(null);
   };
 
+  //allow NGO to accept or reject volunteer recommendations
   const handleAcceptRecommendation = async (donationId) => {
     try {
       const ngoId = localStorage.getItem('userId');
@@ -220,7 +193,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     }
   };
   
-  
+  //reject volunteer recommendation
   const handleRejectRecommendation = async (donationId) => {
     try {
       const ngoId = localStorage.getItem('userId');
@@ -247,6 +220,7 @@ const [sortOrder, setSortOrder] = useState('newest');
   };
   
 
+  //client side filtering and sorting of requests
   const filteredRequests = requests
   .filter(req =>
     (!statusFilter || req.status === statusFilter) &&
@@ -258,6 +232,7 @@ const [sortOrder, setSortOrder] = useState('newest');
     return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
   });
 
+  //mark completer donation as delivered
   const markAsDelivered = async (donationId) => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/requests/mark-delivered/${donationId}`, {
@@ -428,6 +403,7 @@ const [sortOrder, setSortOrder] = useState('newest');
                       {req.preferredDate && (<p className="flex items-center gap-2">📅 <span className="font-medium">Preferred:</span> {new Date(req.preferredDate).toLocaleDateString()}</p>)}
                       {req.specialNotes && (<p className="flex items-start gap-2 text-gray-500 italic">📝 {req.specialNotes}</p>)}
                     </div>
+                    {/* Auto detection of NGO's current location happens during Register not in NGO dashboard */}
                     {req.ngoDetails?.address && (<p className="text-gray-700 flex items-center gap-2"><FaMapMarkerAlt /> Location: {req.ngoDetails.address}</p>)}
                     {req.ngoDetails?.name && (<p className="text-gray-700 font-medium">NGO: {req.ngoDetails.name}</p>)}
                     <span className={`inline-block px-3 py-1 rounded-full text-white text-sm mt-3 ${req.status === 'Pending' ? 'bg-blue-500' : req.status === 'Picked' ? 'bg-yellow-500' : req.status === 'Delivered' ? 'bg-green-600' : 'bg-gray-400'}`}>{req.status}</span>
@@ -447,3 +423,6 @@ const [sortOrder, setSortOrder] = useState('newest');
 };
 
 export default NGO;
+
+
+

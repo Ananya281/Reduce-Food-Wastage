@@ -14,7 +14,7 @@ const Register = () => {
     password: '',
     role: 'Donor',
     contactNumber: '',
-    volunteerAddress: '', // ✅ NEW
+    volunteerAddress: '',
     ngoName: '',
     ngoRegNumber: '',
     ngoType: '',
@@ -24,7 +24,7 @@ const Register = () => {
     ngoOperatingDays: [],
     ngoStartTime: '',
     ngoEndTime: '',
-    locationCoordinates: {   // ✨ Add this
+    locationCoordinates: {  
       type: 'Point',
       coordinates: []
     }
@@ -56,6 +56,8 @@ const Register = () => {
     });
   };
 
+  //using browser geolocation API to get user's current location that is latitude and longitude
+  //then OpenStreetMap's reverse geocoding API to fetch an address from those coordinates
   const handleAutoFillLocation = () => {
     if (!navigator.geolocation) {
       return toast.error('Geolocation is not supported by your browser');
@@ -63,11 +65,12 @@ const Register = () => {
   
     setIsLocating(true);
   
+    //returns latitude and longitude
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
   
-        // ✅ Strict validation check
+        //Strict validation check
         if (
           typeof latitude !== 'number' || typeof longitude !== 'number' ||
           isNaN(latitude) || isNaN(longitude)
@@ -81,6 +84,8 @@ const Register = () => {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
           );
+          //converting back into readable address
+          // reverse geocoding
           const data = await res.json();
           const address = data.display_name || `${latitude}, ${longitude}`;
   
@@ -154,6 +159,8 @@ const Register = () => {
       console.log("📤 Final Coordinates being sent:", coords);
       console.log("📤 Sending formData:", latestFormData);
   
+      //sending to backend
+      //address+coordinates sent to backend
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -2,18 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react'; // Icons from lucide-react
 
+
+//functional component for Navbar
 const Navbar = () => {
   const navigate = useNavigate();
+  //redirect users to Home Page after logout
   const location = useLocation();
+  //gives current route information
+  //like /login, /donor etc.
 
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('userId'));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  //runs every time route changes
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('userId'));
     setIsMenuOpen(false); // Close menu on route change
   }, [location.pathname]);
 
+
+  // Listen for storage changes
+  //synchronize login state across multiple tabs
+  //user logs out in one tab, other tabs should also reflect that change
   useEffect(() => {
     const handleStorageChange = () => {
       setIsLoggedIn(!!localStorage.getItem('userId'));
@@ -22,6 +32,8 @@ const Navbar = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  //polling that is periodically checks if user is logged in
+  //every 500ms
   useEffect(() => {
     const interval = setInterval(() => {
       const loggedIn = !!localStorage.getItem('userId');
@@ -30,6 +42,7 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, []);
 
+  //clear authentication data from local storage
   const handleSignOut = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');

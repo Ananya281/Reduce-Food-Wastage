@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 
 const RecommendNGOModal = ({ pickup, onClose, onNgoSelected }) => {
   const [nearbyNgos, setNearbyNgos] = useState([]);
+  //list of nearby ngos fetched from backend
   const [selectedNgoId, setSelectedNgoId] = useState('');
+  //stores NGO that volunteer selects
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-  const volunteerId = localStorage.getItem('userId'); // ✅ Fetch volunteer id
+  const volunteerId = localStorage.getItem('userId'); // Fetch volunteer id
 
   useEffect(() => {
     const fetchNearbyNgos = async () => {
@@ -16,7 +18,7 @@ const RecommendNGOModal = ({ pickup, onClose, onNgoSelected }) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            coordinates: { lat, lng } // ✅ Correct structure expected by backend
+            coordinates: { lat, lng } // Correct structure expected by backend
           })
         });
   
@@ -53,7 +55,7 @@ const RecommendNGOModal = ({ pickup, onClose, onNgoSelected }) => {
         })
       });
       if (res.ok) {
-        onNgoSelected(); // ✅ Success callback
+        onNgoSelected(); // Success callback
       } else {
         console.error('Failed to recommend NGO');
       }

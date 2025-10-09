@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck,
-  FaPhone, FaArchive, FaInfoCircle, FaBoxes, FaTrash, FaEdit, FaFlag, FaLocationArrow
+  FaArchive, FaInfoCircle, FaBoxes, FaTrash, FaEdit
 } from 'react-icons/fa';
 
 
@@ -18,14 +18,12 @@ const Donor = () => {
     pickupStartTime: '', pickupEndTime: '', servings: '',
     storageInstructions: '', specialNotes: '', isRefrigerated: 'No',
     coordinates: { lat: null, lng: null },
-    ngoRequestId: null // ✅ Add this line
+    ngoRequestId: null // Add this line
   });
   const [ngoRequests, setNgoRequests] = useState([]);
 
   const [sortBy, setSortBy] = useState('createdAt'); // default sort by createdAt
 
-  const [isLocating, setIsLocating] = useState(false);
-  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const donorId = localStorage.getItem('userId');
@@ -36,7 +34,9 @@ const [filterStatus, setFilterStatus] = useState('');
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
+
   useEffect(() => {
+    //check donor login
     if (!donorId) {
       toast.error('⚠️ Please login again. User ID missing.');
       navigate('/');
@@ -44,10 +44,11 @@ const [filterStatus, setFilterStatus] = useState('');
     }
   
     if (routeLocation.state?.welcome) {
-      setShowWelcome(true);
-      setTimeout(() => setShowWelcome(false), 3000);
+      setShowWelcome(true);//welcome message
+      setTimeout(() => setShowWelcome(false), 3000);//hide it after 3 seconds
     }
   
+
     if (routeLocation.state?.prefillRequest) {
       const req = routeLocation.state.prefillRequest;
       setFormData(prev => ({
@@ -59,77 +60,19 @@ const [filterStatus, setFilterStatus] = useState('');
         coordinates: req.locationCoordinates || { lat: null, lng: null },
         contactNumber: req.contactNumber || '',
         specialNotes: req.specialNotes || '',
-        ngoRequestId: req._id  // ✅ FIX THIS LINE: you were setting it to null earlier
+        ngoRequestId: req._id  // FIX THIS LINE: you were setting it to null earlier
       }));
       toast.info('📝 NGO request prefilled. Please complete the donation form.');
     }    
   
-    // ✅ New: Prefill saved donor location
     fetchDonorLocation();
+    //load saved donor location
   
+    //fetch donor data from backend
     fetchDonations();
-    fetchPreviousLocations();
     fetchNGORequests();
   }, []);
    
-  
-
-  const handleAutoFillLocation = () => {
-    if (!navigator.geolocation) {
-      return toast.error('❌ Geolocation is not supported by your browser.');
-    }
-  
-    setIsLocating(true);
-  
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("✅ Coordinates Captured:", latitude, longitude);
-  
-        try {
-          const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
-  
-          if (!apiKey) {
-            throw new Error("OpenCage API key is missing");
-          }
-  
-          const res = await fetch(
-            `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`
-          );
-  
-          if (!res.ok) throw new Error('Failed to fetch address');
-  
-          const data = await res.json();
-          const address = data.results[0]?.formatted || `${latitude}, ${longitude}`;
-  
-          setFormData(prev => ({
-            ...prev,
-            location: address,
-            ngoAddress: address,
-coordinates: {
-  type: 'Point',
-  coordinates: [formData.coordinates.lng, formData.coordinates.lat]
-}
-
-          }));
-          toast.success("📍 Location auto-filled!");
-          toast.success('📍 Location and Coordinates Captured Successfully!');
-        } catch (error) {
-          console.error("Geocoding error:", error);
-          toast.error("❌ Failed to fetch address.");
-        } finally {
-          setIsLocating(false);
-        }
-      },
-      (error) => {
-        console.error("Location access denied:", error);
-        toast.error("❌ Unable to access your location.");
-        setIsLocating(false);
-      }
-    );
-  };
-  
-  
   
 
   const fetchDonations = async () => {
@@ -141,47 +84,6 @@ coordinates: {
       toast.error("❌ Failed to load your donations.");
     }
   };
-
-  const fetchPreviousLocations = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/donations/locations/${donorId}`);
-      const data = await res.json();
-      setLocationSuggestions(data || []);
-    } catch (err) {
-      console.error('Error fetching previous locations:', err);
-    }
-  };
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("❌ Geolocation is not supported by your browser.");
-      return;
-    }
-  
-    setIsLocating(true);
-  
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("✅ Coordinates Captured:", latitude, longitude);
-  
-        setFormData(prev => ({
-          ...prev,
-          location: `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`,
-          coordinates: { lat: latitude, lng: longitude }
-        }));
-  
-        toast.success("📍 Coordinates Captured Successfully!");
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error("Location access denied:", error);
-        toast.error("❌ Unable to access your location.");
-        setIsLocating(false);
-      }
-    );
-  };  
-  
   
 
   const handleChange = (e) => {
@@ -225,8 +127,8 @@ coordinates: {
           quantity,
           packaging,
           location,
-          foodPreparedDate,           // ✅ backend will rename to preparedAt
-          donationAvailableDate,      // ✅ backend will rename to availableFrom
+          foodPreparedDate,           // backend will rename to preparedAt
+          donationAvailableDate,      // backend will rename to availableFrom
           expiryDate,
           pickupStartTime,
           pickupEndTime,
@@ -253,7 +155,6 @@ coordinates: {
           coordinates: { lat: null, lng: null }
         });
         fetchDonations();
-        fetchPreviousLocations();
       } else {
         toast.error('❌ Failed to save donation');
       }
@@ -323,6 +224,7 @@ donationAvailableDate: donation.availableFrom?.slice(0, 16) || '',
     }
   };  
 
+  //fetch saved donor location from backend
   const fetchDonorLocation = async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/users/${donorId}`);

@@ -20,8 +20,9 @@ const AllDonationsPage = () => {
 
   useEffect(() => {
     fetchDonations();
-  }, []);
-
+  }, []);//render component ui, blank initially 
+  //side effect to fetch donations data from backend
+  
   const fetchDonations = async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/donations`);
@@ -73,7 +74,7 @@ else if (activeTab === 'general') {
       d.status === 'Available' &&
       !d.ngoDetails?.ngoId &&              // not linked via ID
       !d.ngoRequestId &&                   // not created via request
-      !d.ngoDetails?.name &&               // ✅ NEW: exclude manual NGO donations
+      !d.ngoDetails?.name &&               // NEW: exclude manual NGO donations
       (!d.volunteer || d.volunteer === volunteerId)
   );
 }
@@ -96,8 +97,6 @@ else if (activeTab === 'general') {
 if (filters.sort === 'createdOldest') {
   filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 }
-
-
     return filtered;
   };
 
@@ -161,10 +160,9 @@ if (filters.sort === 'createdOldest') {
   <option value="">Default</option>
   <option value="expirySooner">Sooner Expiry</option>
   <option value="expiryLater">Later Expiry</option>
-  <option value="createdNewest">Newest First</option> {/* ✅ ADD THIS */}
-  <option value="createdOldest">Oldest First</option> {/* ✅ ADD THIS */}
+  <option value="createdNewest">Newest First</option> 
+  <option value="createdOldest">Oldest First</option> 
 </select>
-
           </div>
         )}
 

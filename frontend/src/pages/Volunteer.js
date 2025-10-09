@@ -13,7 +13,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'react-toastify/dist/ReactToastify.css';
-import RecommendNGOModal from '../components/RecommendNGOModel';  // ✅ (make sure file path is correct)
+import RecommendNGOModal from '../components/RecommendNGOModel';  // (make sure file path is correct)
 
 const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
   const toRad = (val) => (val * Math.PI) / 180;
@@ -106,7 +106,7 @@ const Volunteer = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/volunteers/${volunteerId}/pickups`);
       const data = await res.json();
-      console.log("Fetched pickups:", data); // ✅ Add this line
+      console.log("Fetched pickups:", data); // Add this line
       setMyPickups(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("❌ Failed to fetch pickups");
@@ -161,7 +161,7 @@ const Volunteer = () => {
     }
   };
 
-  const [acceptedDonationId, setAcceptedDonationId] = useState(null);  // ✨ New state
+  const [acceptedDonationId, setAcceptedDonationId] = useState(null);  // New state
 
   const handleAccept = async (donationId) => {
     if (!volunteerId) {
@@ -219,12 +219,13 @@ const Volunteer = () => {
   useEffect(() => {
     const saved = localStorage.getItem('volunteerFilters');
     if (saved) setFilters(JSON.parse(saved));
-  }, []);
+  }, []);//load saved filters from local storage
 
   useEffect(() => {
     if (volunteerId) {
       fetchAvailability();
       fetchVolunteerPickups();
+      //fetch volunteer's current location
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setVolunteerLocation([pos.coords.latitude, pos.coords.longitude]);
@@ -237,10 +238,13 @@ const Volunteer = () => {
       );
     }
   }, [volunteerId]);
+  //trigger when volunteer logs in
 
   useEffect(() => {
     if (volunteerLocation) fetchAvailableDonations();
   }, [volunteerLocation]);
+  //fetch donations whenever volunteer location changes
+  //not static location, saved during registration
 
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
@@ -402,7 +406,7 @@ const Volunteer = () => {
 )}
 
 
-  {/* 🎯 Floating NGO tag */}
+  {/* Floating NGO tag */}
 {(pickup.ngoRequestId || pickup.ngoDetails) && (
   <div className="absolute bottom-3 right-3">
     <span className="inline-flex items-center bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">

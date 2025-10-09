@@ -3,11 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaUtensils, FaMapMarkerAlt, FaCalendarAlt, FaClipboardCheck, FaPhone, FaFlag, FaBuilding
-} from 'react-icons/fa'; // 🔥 Added FaBuilding for NGO icons
+} from 'react-icons/fa'; //Added FaBuilding for NGO icons
 
 const NGORequests = () => {
   const [ngoRequests, setNgoRequests] = useState([]);
   const navigate = useNavigate();
+  //from React Router for page navigation
+  //donor dashboard or prefill donation form with request details
 
   const [urgencyFilter, setUrgencyFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -15,6 +17,7 @@ const NGORequests = () => {
 
   const [urgencyFilterTemp, setUrgencyFilterTemp] = useState('');
   const [typeFilterTemp, setTypeFilterTemp] = useState('');
+  //temp filter states to allow user to select multiple filters
   const [sortOrderTemp, setSortOrderTemp] = useState('newest');
 
   useEffect(() => {
@@ -33,6 +36,9 @@ const NGORequests = () => {
 
     fetchNGORequests();
   }, []);
+  //useeffect hook used for side effects
+  //data fetching side effect, calling backend API once when page loads
+  //so empty dependency array
 
   return (
     <div className="pt-24 px-6 pb-16 bg-gray-50 min-h-screen">
@@ -99,15 +105,19 @@ const NGORequests = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {ngoRequests
+            //keep only requests matching the filters
               .filter(req =>
                 (!urgencyFilter || req.urgency === urgencyFilter) &&
                 (!typeFilter || req.foodType === typeFilter)
               )
+              //order them by preferred date
+              //(oldest first or newest first)
               .sort((a, b) => {
                 const dateA = new Date(a.preferredDate);
                 const dateB = new Date(b.preferredDate);
                 return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
               })
+              //convert each request object into react jsx card
               .map((req) => (
                 <div key={req._id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-200">
                   <div className="mb-3 flex items-center gap-2 text-green-700 text-xl font-semibold">

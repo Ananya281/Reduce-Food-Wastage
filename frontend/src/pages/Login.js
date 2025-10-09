@@ -20,20 +20,25 @@ const Login = () => {
     else if (role === 'Volunteer') navigate('/volunteer');
   };
 
+  // async/await for clean asynchronous API handling and
+  // stored tokens in localStorage for session persistence.
   const handleLogin = async () => {
     try {
+      // Sends POST request with JSON body.
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
+      //awaits response
       const data = await res.json();
 
       if (res.ok && data.user) {
         localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
 
+        // On success: saves data to localStorage + navigates.
         showSuccess();
         navigateToDashboard(data.user.role);
       } else {
@@ -42,11 +47,16 @@ const Login = () => {
     } catch (error) {
       console.error('❌ Login Error:', error);
       showError('Login failed');
+      // On failure: shows toast error.
     }
   };
 
+
+  // Google OAuth login handler
+  // using @react-oauth/google package
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
+      //send credential to backend for verification
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,10 +65,15 @@ const Login = () => {
 
       const data = await res.json();
       console.log('📦 Google Login Response:', data);
+      //backend verifies token and returns user data
 
+      //same localStorage and navigation logic as normal login
       if (res.ok && data.user) {
         localStorage.setItem('userId', data.user._id);
         localStorage.setItem('userRole', data.user.role);
+        //to persist login sessions even after page refresh
+        //improve it using Context Api
+        //glabally stores the current user's login state, instead of checking in every component 
 
         showSuccess();
         navigateToDashboard(data.user.role);
@@ -70,6 +85,10 @@ const Login = () => {
       showError('Error during Google login');
     }
   };
+  //integration with Google OAuth login to make onboarding easier
+  //Google token sent to backend for verification
+
+
 
   const handleGoogleError = () => {
     showError('Google Sign In failed');
