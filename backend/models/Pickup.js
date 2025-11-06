@@ -18,13 +18,14 @@ const pickupSchema = new mongoose.Schema({
   deliveredAt: {
     type: Date
   },
-  feedback: {
+  status: {
     type: String,
-    trim: true
+    enum: ['Accepted', 'In Transit', 'Delivered'],
+    default: 'Accepted'
   }
 });
 
-pickupSchema.index({ volunteer: 1 });      // ✅ NEW
-pickupSchema.index({ donation: 1 });       // ✅ NEW
+pickupSchema.index({ volunteer: 1 });      
+pickupSchema.index({ donation: 1 });
 
 module.exports = mongoose.model('Pickup', pickupSchema);

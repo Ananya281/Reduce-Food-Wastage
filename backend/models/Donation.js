@@ -70,7 +70,6 @@ const donationSchema = new mongoose.Schema({
     default: false
   },
 
-  // ✅ Updated to GeoJSON format
  coordinates: {
   type: {
     type: String,
@@ -121,11 +120,10 @@ const donationSchema = new mongoose.Schema({
   }
 });
 
-// ✅ GeoIndex for spatial queries
-donationSchema.index({ coordinates: '2dsphere' });
+// donationSchema.index({ coordinates: '2dsphere' });
 
-donationSchema.index({ donor: 1 });       // ✅ NEW
-donationSchema.index({ volunteer: 1 });   // ✅ NEW
+donationSchema.index({ donor: 1 });    
+donationSchema.index({ volunteer: 1 });   
 
 donationSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
