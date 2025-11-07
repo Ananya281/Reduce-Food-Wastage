@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Donation = require('../models/Donation');
-const Request = require('../models/Request');   // ✅ Corrected here
+const Request = require('../models/Request');   
 const Feedback = require('../models/Feedback');
 const User = require('../models/User');
 
@@ -13,11 +13,9 @@ const STATUS = {
   DELIVERED: 'Delivered'
 };
 
-// ============================
-// 🥗 Create a New Donation
-// ============================
+//create a new donation
 router.post('/', async (req, res) => {
-  console.log("📦 Incoming donation payload:", req.body);
+  console.log("Incoming donation payload:", req.body);
 
   try {
     const {
@@ -28,18 +26,17 @@ router.post('/', async (req, res) => {
       ngoRequestId
     } = req.body;
 
-    // 🚨 Print Critical Fields First
-    console.log("🚨 donor:", donor);
-    console.log("🚨 foodItem:", foodItem);
-    console.log("🚨 quantity:", quantity);
-    console.log("🚨 location:", location);
-    console.log("🚨 foodPreparedDate:", foodPreparedDate);
-    console.log("🚨 donationAvailableDate:", donationAvailableDate);
-    console.log("🚨 expiryDate:", expiryDate);
-    console.log("🚨 coordinates:", coordinates);
+    console.log("donor:", donor);
+    console.log("foodItem:", foodItem);
+    console.log("quantity:", quantity);
+    console.log("location:", location);
+    console.log("foodPreparedDate:", foodPreparedDate);
+    console.log("donationAvailableDate:", donationAvailableDate);
+    console.log("expiryDate:", expiryDate);
+    console.log("coordinates:", coordinates);
 
     if (!donor || !foodItem || !quantity || !location || !expiryDate || !foodPreparedDate || !donationAvailableDate) {
-      console.log("❌ Required fields missing.");
+      console.log("Required fields missing.");
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
@@ -61,7 +58,7 @@ router.post('/', async (req, res) => {
       console.log("🔵 Fetching NGO Request:", ngoRequestId);
       ngoRequest = await Request.findById(ngoRequestId).populate('receiver');
       if (ngoRequest) {
-        console.log("✅ NGO Request found.");
+        console.log("NGO Request found.");
         ngoDetails = {
           _id: ngoRequest.receiver?._id,
           name: ngoRequest.receiver?.ngoName || '',
@@ -70,24 +67,24 @@ router.post('/', async (req, res) => {
           contactEmail: ngoRequest.receiver?.email || ''
         };        
       } else {
-        console.log("⚠️ NGO Request not found for ID:", ngoRequestId);
+        console.log("NGO Request not found for ID:", ngoRequestId);
       }
     }
 
-    console.log("🔵 Fetching Donor User:", donor);
+    console.log("Fetching Donor User:", donor);
     const donorUser = await User.findById(donor);
     if (donorUser) {
-      console.log("✅ Donor User found.");
+      console.log("Donor User found.");
       donorDetails = {
         donorName: donorUser.fullName || '',
         donorEmail: donorUser.email || '',
         donorContactNumber: donorUser.contactNumber || ''
       };
     } else {
-      console.log("⚠️ Donor User not found for ID:", donor);
+      console.log("Donor User not found for ID:", donor);
     }
 
-    console.log("🚀 Ready to create Donation...");
+    console.log("Ready to create Donation...");
 
     const donation = await Donation.create({
       donor,
@@ -116,30 +113,29 @@ coordinates: {
     });
     
 
-    console.log("✅ Donation created successfully:", donation._id);
+    console.log("Donation created successfully:", donation._id);
 
     if (ngoRequest) {
-      console.log("🔵 Updating NGO Request with Donation ID...");
+      console.log("Updating NGO Request with Donation ID...");
       ngoRequest.status = 'Accepted';
       ngoRequest.donation = donation._id;
       await ngoRequest.save();
-      console.log("✅ NGO Request updated.");
+      console.log("NGO Request updated.");
     }
 
     res.status(201).json(donation);
 
   } catch (err) {
-    console.error('❌ Exception occurred:', err);
+    console.error('Exception occurred:', err);
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
 
-// ============================
-// 🌍 Reverse Geocoding via OpenStreetMap
-// ============================
-const fetch = require('node-fetch'); // Ensure this is installed
+const fetch = require('node-fetch'); 
 
+//convert lat lng to address
+//autofill address from coordinates
 router.get('/reverse-geocode', async (req, res) => {
   const { lat, lng } = req.query;
 
@@ -169,9 +165,7 @@ router.get('/reverse-geocode', async (req, res) => {
   }
 });
 
-// ============================
-// ✏️ Update a Donation (Edit)
-// ============================
+//edit a donation
 router.patch('/:donationId', async (req, res) => {
   const { donationId } = req.params;
 
@@ -188,7 +182,6 @@ router.patch('/:donationId', async (req, res) => {
       updatedAt: new Date()
     };
 
-    // ✅ Validate coordinates if present
     if (updateFields.coordinates) {
       const { lat, lng } = updateFields.coordinates;
       if (
@@ -218,9 +211,7 @@ router.patch('/:donationId', async (req, res) => {
 });
 
 
-// ============================
-// 🗑️ Delete a Donation
-// ============================
+//delete a donation
 router.delete('/:donationId', async (req, res) => {
   const { donationId } = req.params;
 
@@ -243,9 +234,8 @@ router.delete('/:donationId', async (req, res) => {
   }
 });
 
-// ============================
-// 📥 Get All Donations (with ngoRequest details)
-// ============================
+//fetch all donations
+//filtered by status
 router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
@@ -264,10 +254,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// ============================
-// 📥 Get Donations by Donor ID
-// ============================
+//fetch donations by donor
+//My Donation section, card present
 router.get('/donor/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
@@ -282,9 +270,7 @@ router.get('/donor/:donorId', async (req, res) => {
   }
 });
 
-// ============================
-// 📍 Get Unique Previous Locations
-// ============================
+//fetch unique previous locations used by donor
 router.get('/locations/:donorId', async (req, res) => {
   try {
     const { donorId } = req.params;
@@ -296,9 +282,8 @@ router.get('/locations/:donorId', async (req, res) => {
   }
 });
 
-// ============================
-// 📍 Get Nearby Donations for Volunteer
-// ============================
+//volunteer fetching nearby donations with filters
+//used in Volunteer Dashboard
 router.post('/nearby', async (req, res) => {
   try {
     const { userId, location, filters } = req.body;
@@ -350,63 +335,7 @@ router.post('/nearby', async (req, res) => {
   }
 });
 
-// ============================
-// ✅ Mark Donation as Delivered + Save Feedback
-// ============================
-router.patch('/complete/:id', async (req, res) => {
-  const donationId = req.params.id;
-  const { feedback, volunteer } = req.body;
-
-  if (!donationId || !feedback || typeof feedback.rating !== 'number') {
-    return res.status(400).json({ error: 'Invalid request data' });
-  }
-
-  try {
-    const donation = await Donation.findById(donationId);
-    if (!donation) return res.status(404).json({ error: 'Donation not found' });
-
-    donation.status = STATUS.DELIVERED;
-    donation.deliveredAt = new Date();
-    await donation.save();
-
-    const existingFeedback = await Feedback.findOne({ donation: donationId, volunteer });
-    if (existingFeedback) {
-      return res.status(409).json({ error: 'Feedback already submitted for this donation by this volunteer.' });
-    }
-
-    await Feedback.create({
-      volunteer,
-      donation: donation._id,
-      rating: feedback.rating,
-      comment: feedback.comment || ''
-    });
-
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('❌ Error saving feedback:', err);
-    res.status(500).json({ error: 'Failed to submit feedback' });
-  }
-});
-
-// ============================
-// 📊 Get All Feedbacks with Populated Info
-// ============================
-router.get('/feedbacks', async (req, res) => {
-  try {
-    const feedbacks = await Feedback.find({})
-      .populate('donation')
-      .populate('volunteer', 'fullName email')
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(feedbacks);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch feedbacks' });
-  }
-});
-
-// ============================
-// 🧾 Get Donations Assigned to a Specific NGO
-// ============================
+//fetch donations assigned to a specific NGO
 router.get('/assigned/:ngoId', async (req, res) => {
   const { ngoId } = req.params;
 
@@ -427,7 +356,6 @@ router.get('/assigned/:ngoId', async (req, res) => {
         populate: { path: 'receiver' }
       });
 
-    // ✅ Filter to only include donations linked to this NGO
     const filtered = donations.filter(d => {
       const requestMatch = d.ngoRequest?.receiver?._id?.toString() === ngoId;
       const directMatch = d.ngoDetails?._id?.toString() === ngoId;

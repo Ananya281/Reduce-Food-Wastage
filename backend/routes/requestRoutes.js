@@ -2,15 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Request = require('../models/Request');
 const Donation = require('../models/Donation');
-const User = require('../models/User'); // ✅ Make sure this is at the top if not already
-const NgoRequest = require('../models/NgoRequest'); // ✅ If you are using NgoRequest model
+const User = require('../models/User');
+const NgoRequest = require('../models/NgoRequest'); 
 const nodemailer = require('nodemailer');
 
 const router = express.Router();
 
-// ============================
-// 🆕 Create a New Request
-// ============================
+//create a new request
 router.post('/', async (req, res) => {
   try {
     const {
@@ -86,10 +84,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ============================
-// 📥 Get All Requests or by Receiver
-// /api/requests?receiver=NGO_ID
-// ============================
+//fetch all requests of NGO
 router.get('/', async (req, res) => {
   try {
     const { receiver } = req.query;
@@ -112,10 +107,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ============================
-// 📍 Get Previous Unique Locations by Receiver
-// /api/requests/locations/:receiverId
-// ============================
+//fetch NGO's previous unique locations
 router.get('/locations/:receiverId', async (req, res) => {
   try {
     const { receiverId } = req.params;
@@ -134,9 +126,7 @@ router.get('/locations/:receiverId', async (req, res) => {
   }
 });
 
-// ============================
-// ❌ Delete Request by ID
-// ============================
+//delete request
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -168,9 +158,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ============================
-// ✏️ Update Request by ID
-// ============================
+//update request
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -211,9 +199,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 
-// ============================
-// ✏️ Mark as Delivered
-// ============================
+//mark request as delivered and send emails
 router.patch('/mark-delivered/:donationId', async (req, res) => {
   try {
     const { donationId } = req.params;
@@ -287,65 +273,7 @@ router.patch('/mark-delivered/:donationId', async (req, res) => {
 });
 
 
-
-// ============================
-// ✨ NGO Reviews Volunteer Recommended Donation
-// ============================
-router.patch('/review-recommended/:requestId', async (req, res) => {
-  const { requestId } = req.params;
-  const { action, ngoDetails } = req.body; // action = 'accept' or 'reject'
-
-  if (!['accept', 'reject'].includes(action)) {
-    return res.status(400).json({ error: 'Action must be "accept" or "reject".' });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(requestId)) {
-    return res.status(400).json({ error: 'Invalid Request ID.' });
-  }
-
-  try {
-    const request = await Request.findById(requestId).populate('donation');
-
-    if (!request) {
-      return res.status(404).json({ error: 'Request not found.' });
-    }
-
-    if (!request.donation) {
-      return res.status(400).json({ error: 'No linked donation found for this request.' });
-    }
-
-    const donation = await Donation.findById(request.donation._id);
-
-    if (!donation) {
-      return res.status(404).json({ error: 'Donation not found.' });
-    }
-
-    if (action === 'accept') {
-      donation.ngoDetails = {
-        ...donation.ngoDetails,
-        name: ngoDetails.name,
-        address: ngoDetails.address,
-        type: ngoDetails.type,
-        contactEmail: ngoDetails.contactEmail,
-      };
-      donation.status = 'AcceptedByNGO';  // ✅ Optional: mark that NGO approved it
-    } else if (action === 'reject') {
-      donation.ngoDetails = undefined;
-      donation.status = 'Available'; // Put donation back as free if rejected
-    }
-
-    await donation.save();
-
-    res.status(200).json({ success: true, message: `Donation successfully ${action}ed by NGO.` });
-
-  } catch (error) {
-    console.error('❌ Error reviewing recommended donation:', error.message);
-    res.status(500).json({ error: 'Server error while reviewing recommendation.' });
-  }
-});
-
-
-// 🛠 NGO Accepts the volunteer recommendation
+// NGO Accepts the volunteer recommendation
 router.patch('/accept-recommendation/:donationId', async (req, res) => {
   try {
     const { donationId } = req.params;
@@ -382,9 +310,7 @@ router.patch('/accept-recommendation/:donationId', async (req, res) => {
 });
 
 
-
-
-// 🛠 NGO Rejects the volunteer recommendation
+// NGO Rejects the volunteer recommendation
 router.patch('/reject-recommendation/:donationId', async (req, res) => {
   try {
     const { donationId } = req.params;
@@ -417,49 +343,5 @@ router.patch('/reject-recommendation/:donationId', async (req, res) => {
     res.status(500).json({ error: 'Failed to reject recommendation' });
   }
 });
-
-
-
-// ============================
-// ✅ Recommended Donations API (Example)
-// /api/requests/recommended?ngo=NGO_ID
-// ============================
-// ✅ Get recommended donations made for this NGO
-router.get('/recommended', async (req, res) => {
-  try {
-    const { ngo } = req.query;
-
-    console.log("📥 Incoming NGO ID for recommendations:", ngo);
-
-    if (!ngo || !mongoose.Types.ObjectId.isValid(ngo)) {
-      return res.status(400).json({ error: 'Valid NGO ID is required.' });
-    }
-
-    const recommendations = await NgoRequest.find({ ngo, status: { $in: ['Pending', 'Accepted'] }})
-      .populate({
-        path: 'donation',
-        select: 'foodItem quantity foodType status'
-      });
-      
-
-    const formatted = recommendations
-      .filter(r => r.donation) // ensure donation still exists
-      .map(r => ({
-        _id: r.donation._id,
-        foodItem: r.donation.foodItem,
-        quantity: r.donation.quantity,
-        foodType: r.donation.foodType,
-        status: r.donation.status,        // ✅ include donation status
-        requestId: r.donation.request,           
-      }));
-
-    res.status(200).json(formatted);
-  } catch (error) {
-    console.error('❌ Error fetching recommended donations:', error.message);
-    res.status(500).json({ error: 'Server error while fetching recommendations.' });
-  }
-});
-
-
 
 module.exports = router;

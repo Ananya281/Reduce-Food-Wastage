@@ -10,21 +10,22 @@ connectDB();
 
 const app = express();
 
-// ✅ Define allowed origins
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:3001', // ✅ ADD THIS LINE
+  'http://localhost:3001',
   'https://reduce-food-wastage.vercel.app'
 ];
 
-// ✅ CORS middleware (with debug log)
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("🌐 Incoming request from:", origin);
-    if (!origin || allowedOrigins.includes(origin)) {
+    console.log("Incoming request from:", origin);
+    if (!origin || allowedOrigins.includes(origin)) 
+    {
       callback(null, true);
-    } else {
-      console.log("⛔ Blocked by CORS:", origin);
+    } 
+    else 
+    {
+      console.log("Blocked by CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -35,12 +36,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ Health check route
 app.get('/', (req, res) => {
   res.send('Welcome to the Food Wastage Reduction API!');
 });
 
-// ✅ All API routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/donations', require('./routes/donationRoutes'));
 app.use('/api/requests', require('./routes/requestRoutes'));
@@ -52,14 +51,13 @@ app.use('/api/users', require('./routes/userRoutes'));
 
 
 
-// ✅ Serve frontend (optional production)
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production') 
+{
   app.use(express.static(path.join(__dirname, '../frontend/build')));
   app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../frontend/build/index.html'));
   });
 }
 
-// ✅ Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
