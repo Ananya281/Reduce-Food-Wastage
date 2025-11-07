@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+//jwt token generation
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
@@ -13,9 +14,7 @@ const generateToken = (user) => {
   );
 };
 
-// ============================
-// 📥 Normal Register
-// ============================
+//registration
 exports.register = async (req, res) => {
   try {
     const {
@@ -38,9 +37,9 @@ exports.register = async (req, res) => {
       ngoAddress,
       operatingHours,
       website,
-      ngoOperatingDays, // ✅ new
-      ngoStartTime,      // ✅ new
-      ngoEndTime         // ✅ new
+      ngoOperatingDays,
+      ngoStartTime,     
+      ngoEndTime
     } = req.body;
 
     if (!fullName || !email || !password || !role) {
@@ -104,7 +103,7 @@ if (role === 'Donor' && !donorAddress) {
       ngoOperatingDays,
       ngoStartTime,
       ngoEndTime,
-      locationCoordinates: req.body.locationCoordinates  // ✅ Add this here
+      locationCoordinates: req.body.locationCoordinates
     });
     
 
@@ -120,9 +119,7 @@ if (role === 'Donor' && !donorAddress) {
   }
 };
 
-// ============================
-// 🔐 Normal Login
-// ============================
+//login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -145,9 +142,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// ============================
-// 🔓 Google Register
-// ============================
+//registration using google
 exports.googleRegister = async (req, res) => {
   const { credential, role } = req.body;
 
@@ -184,9 +179,7 @@ exports.googleRegister = async (req, res) => {
   }
 };
 
-// ============================
-// 🔓 Google Login
-// ============================
+//login using google
 exports.googleLogin = async (req, res) => {
   const { credential } = req.body;
 

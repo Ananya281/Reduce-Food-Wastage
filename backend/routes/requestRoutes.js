@@ -9,8 +9,8 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 //create a new request
-router.post('/', async (req, res) => {
-  try {
+router.post('/', verifyToken, async (req, res) => {
+    try {
     const {
       foodItem,
       foodType,
@@ -85,7 +85,7 @@ router.post('/', async (req, res) => {
 });
 
 //fetch all requests of NGO
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
     const { receiver } = req.query;
 
@@ -108,8 +108,8 @@ router.get('/', async (req, res) => {
 });
 
 //fetch NGO's previous unique locations
-router.get('/locations/:receiverId', async (req, res) => {
-  try {
+router.get('/locations/:receiverId', verifyToken, async (req, res) => {
+    try {
     const { receiverId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(receiverId)) {
@@ -127,7 +127,7 @@ router.get('/locations/:receiverId', async (req, res) => {
 });
 
 //delete request
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
 
   console.log('🗑️ DELETE request received for ID:', id);
@@ -159,7 +159,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 //update request
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -200,8 +200,8 @@ router.patch('/:id', async (req, res) => {
 
 
 //mark request as delivered and send emails
-router.patch('/mark-delivered/:donationId', async (req, res) => {
-  try {
+router.patch('/mark-delivered/:donationId', verifyToken, async (req, res) => {
+    try {
     const { donationId } = req.params;
 
     const donation = await Donation.findById(donationId)
@@ -274,8 +274,8 @@ router.patch('/mark-delivered/:donationId', async (req, res) => {
 
 
 // NGO Accepts the volunteer recommendation
-router.patch('/accept-recommendation/:donationId', async (req, res) => {
-  try {
+router.patch('/accept-recommendation/:donationId', verifyToken, async (req, res) => {
+    try {
     const { donationId } = req.params;
     const { ngoId } = req.body;
 
@@ -311,8 +311,8 @@ router.patch('/accept-recommendation/:donationId', async (req, res) => {
 
 
 // NGO Rejects the volunteer recommendation
-router.patch('/reject-recommendation/:donationId', async (req, res) => {
-  try {
+router.patch('/reject-recommendation/:donationId', verifyToken, async (req, res) => {
+    try {
     const { donationId } = req.params;
     const { ngoId } = req.body;
 

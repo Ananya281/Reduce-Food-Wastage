@@ -1,34 +1,33 @@
 const express = require('express');
 const router = express.Router();
 
-const {
-  register,
-  login,
-  googleRegister,
-  googleLogin,
-} = require('../controllers/authController');
+const {register,login,googleRegister,googleLogin} = require('../controllers/authController');
 
-// ============================
-// 🔐 Authentication Routes
-// ============================
+const { verifyToken } = require('../middleware/authMiddleware');
 
-// 📥 Email/Password Authentication
-router.post('/register', register);       // ➕ Register user (Donor/NGO/Volunteer)
-router.post('/login', login);             // 🔑 Login user
+//Email/Password Authentication
+router.post('/register', register);
+router.post('/login', login);
 
-// 🔐 Google OAuth Routes
-router.post('/google-register', googleRegister);  // ➕ Google Sign-Up
-router.post('/google-login', googleLogin);        // 🔓 Google Sign-In
+//Google OAuth Routes
+router.post('/google-register', googleRegister);
+router.post('/google-login', googleLogin);
 
-// ============================
-// (Optional) Token Verification Middleware
-// ============================
-// const { verifyToken } = require('../middleware/authMiddleware');
-// router.get('/verify-token', verifyToken, (req, res) => res.json({ success: true }));
+// Used by frontend to check if stored token is still valid or expired
+//when user refresh the page
+router.get('/verify-token', verifyToken, (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Token is valid',
+    user: req.user, // includes id and role from token payload
+  });
+});
+//backend auto login a user if token is valid
 
-// ============================
-// (Optional) Logout (handled by frontend - token removal)
-// ============================
-// router.post('/logout', (req, res) => res.json({ message: 'Logged out successfully' }));
+// The frontend simply deletes the token from localStorage/cookies
+//when user logout, delete JWT from browser
+router.post('/logout', (req, res) => {
+  res.status(200).json({ message: 'Logged out successfully (client-side token removal)' });
+});
 
 module.exports = router;

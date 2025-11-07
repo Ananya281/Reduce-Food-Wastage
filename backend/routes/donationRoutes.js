@@ -5,6 +5,8 @@ const Request = require('../models/Request');
 const Feedback = require('../models/Feedback');
 const User = require('../models/User');
 
+const verifyToken = require('../middleware/authMiddleware');
+
 const router = express.Router();
 
 const STATUS = {
@@ -14,7 +16,7 @@ const STATUS = {
 };
 
 //create a new donation
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   console.log("Incoming donation payload:", req.body);
 
   try {
@@ -166,7 +168,7 @@ router.get('/reverse-geocode', async (req, res) => {
 });
 
 //edit a donation
-router.patch('/:donationId', async (req, res) => {
+router.patch('/:donationId', verifyToken, async (req, res) => {
   const { donationId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(donationId)) {
@@ -210,9 +212,8 @@ router.patch('/:donationId', async (req, res) => {
   }
 });
 
-
 //delete a donation
-router.delete('/:donationId', async (req, res) => {
+router.delete('/:donationId', verifyToken, async (req, res) => {
   const { donationId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(donationId)) {
@@ -256,7 +257,7 @@ router.get('/', async (req, res) => {
 
 //fetch donations by donor
 //My Donation section, card present
-router.get('/donor/:donorId', async (req, res) => {
+router.get('/donor/:donorId', verifyToken, async (req, res) => {
   try {
     const { donorId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(donorId)) {
@@ -271,7 +272,7 @@ router.get('/donor/:donorId', async (req, res) => {
 });
 
 //fetch unique previous locations used by donor
-router.get('/locations/:donorId', async (req, res) => {
+router.get('/locations/:donorId', verifyToken, async (req, res) => {
   try {
     const { donorId } = req.params;
     const donations = await Donation.find({ donor: donorId }).select('location').sort({ createdAt: -1 });
@@ -284,7 +285,7 @@ router.get('/locations/:donorId', async (req, res) => {
 
 //volunteer fetching nearby donations with filters
 //used in Volunteer Dashboard
-router.post('/nearby', async (req, res) => {
+router.post('/nearby', verifyToken, async (req, res) => {
   try {
     const { userId, location, filters } = req.body;
     const query = { status: STATUS.AVAILABLE };
@@ -336,7 +337,7 @@ router.post('/nearby', async (req, res) => {
 });
 
 //fetch donations assigned to a specific NGO
-router.get('/assigned/:ngoId', async (req, res) => {
+router.get('/assigned/:ngoId', verifyToken, async (req, res) => {
   const { ngoId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(ngoId)) {
